@@ -8,7 +8,7 @@ const users = [
   {
     id: 1,
     username: 'admin',
-    password: '$2a$10$X5K9C8f8YKp.lJqK8OW8W.8YH9Z9J9Z9J9Z9J9Z9J9Z9J9Z9J9Z9J', // 'admin123'
+    password: '$2b$10$dglbIsTWyOHxEsnp99051.4AgMgEz430sdOMShEpODp.NQ9nntWYa', // 'admin123'
     email: 'admin@backoffice.com'
   }
 ];
@@ -29,8 +29,7 @@ router.post('/login', async (req, res) => {
     return res.redirect('/auth/login?error=Invalid credentials');
   }
   
-  // For demo purposes, accept plain password 'admin123' OR hashed password
-  const isValid = password === 'admin123' || await bcrypt.compare(password, user.password);
+  const isValid = await bcrypt.compare(password, user.password);
   
   if (!isValid) {
     return res.redirect('/auth/login?error=Invalid credentials');
@@ -46,8 +45,12 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/');
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Session destruction error:', err);
+    }
+    res.redirect('/');
+  });
 });
 
 module.exports = router;

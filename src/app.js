@@ -22,7 +22,11 @@ app.use(session({
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  cookie: { 
+    secure: config.env === 'production',
+    httpOnly: true,
+    sameSite: 'strict'
+  }
 }));
 
 // Routes

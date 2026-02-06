@@ -65,11 +65,8 @@ For testing purposes, use these credentials:
 projet-framework-backOffice/
 ├── src/
 │   ├── config/         # Configuration files
-│   ├── controllers/    # Request handlers
 │   ├── middleware/     # Custom middleware
-│   ├── models/         # Data models
 │   ├── routes/         # Route definitions
-│   ├── utils/          # Utility functions
 │   ├── app.js          # Express app setup
 │   └── server.js       # Server entry point
 ├── views/              # EJS templates
@@ -77,9 +74,7 @@ projet-framework-backOffice/
 │   ├── dashboard/      # Dashboard views
 │   └── partials/       # Reusable view components
 ├── public/             # Static assets
-│   ├── css/            # Stylesheets
-│   ├── js/             # Client-side JavaScript
-│   └── images/         # Images
+│   └── css/            # Stylesheets
 ├── .env.example        # Environment variables template
 ├── .gitignore          # Git ignore rules
 ├── package.json        # Project dependencies
