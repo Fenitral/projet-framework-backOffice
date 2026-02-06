@@ -110,7 +110,18 @@ projet-framework-backOffice/
 - Session-based authentication
 - Password hashing with bcrypt
 - Protected routes with authentication middleware
-- Secure cookie handling
+- Secure cookie handling (httpOnly, sameSite)
+- Environment-based cookie security (secure flag in production)
+
+## Security Considerations
+
+This is a demo/starter framework. For production use, consider adding:
+- **CSRF Protection**: Implement CSRF tokens for form submissions (e.g., using a modern CSRF library)
+- **Rate Limiting**: Add rate limiting to prevent brute force attacks
+- **Database**: Replace mock user data with a proper database
+- **Input Validation**: Add comprehensive input validation and sanitization
+- **HTTPS**: Always use HTTPS in production
+- **Security Headers**: Add security headers using helmet.js
 
 ## Contributing
 
