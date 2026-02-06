@@ -1,0 +1,32 @@
+{
+  "name": "projet-framework-backoffice",
+  "version": "1.0.0",
+  "description": "A modern BackOffice framework for web applications",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fenitral/projet-framework-backOffice.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Fenitral/projet-framework-backOffice/issues"
+  },
+  "homepage": "https://github.com/Fenitral/projet-framework-backOffice#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.4",
+    "ejs": "^4.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
+  }
+}

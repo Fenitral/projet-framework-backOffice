@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - BackOffice</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/header') %>
+    <main>
+        <div class="container">
+            <div class="hero">
+                <h2>Welcome to BackOffice Framework</h2>
+                <p>A modern, scalable backend administration system</p>
+                <div class="cta-buttons">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                    <% } else { %>
+                        <a href="/auth/login" class="btn btn-primary">Login</a>
+                    <% } %>
+                </div>
+            </div>
+            
+            <div class="features">
+                <div class="feature">
+                    <h3>🔐 Secure Authentication</h3>
+                    <p>Built-in authentication system with session management</p>
+                </div>
+                <div class="feature">
+                    <h3>📊 Dashboard</h3>
+                    <p>Clean and intuitive dashboard interface</p>
+                </div>
+                <div class="feature">
+                    <h3>👥 User Management</h3>
+                    <p>Comprehensive user administration tools</p>
+                </div>
+                <div class="feature">
+                    <h3>⚙️ Settings</h3>
+                    <p>Flexible configuration options</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <%- include('partials/footer') %>
+</body>
+</html>

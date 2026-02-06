@@ -1,0 +1,16 @@
+<header class="header">
+    <div class="container">
+        <h1 class="logo">BackOffice</h1>
+        <nav>
+            <% if (typeof user !== 'undefined' && user) { %>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/dashboard/users">Users</a>
+                <a href="/dashboard/settings">Settings</a>
+                <a href="/auth/logout">Logout (<%= user.username %>)</a>
+            <% } else { %>
+                <a href="/">Home</a>
+                <a href="/auth/login">Login</a>
+            <% } %>
+        </nav>
+    </div>
+</header>
