@@ -1,0 +1,29 @@
+SPRINT1
+
+TL: ANGE
+	-assignation taches
+	-merge request
+	-
+DEV 1: Fenitra
+	COTE BACK-OFFICE
+		BASE
+			-Verification et modification des scripts de la base de donnees
+		BACKEND
+			-Creation de l'api pour faire une reservation
+			-Creation de l'api pour liste des reservation
+		FRONTEND
+			-Creation d'une page reservation.jsp pour le formulaire de reservation
+			-Appel de l'api dans le formulaire et test du formulaire
+	
+DEV 2: Tina
+	COTE FRONT-OFFICE
+		PROJET
+			-Configuration du framework SPRING MVC car SPRING-BOOT avant 
+		BACKEND
+			-Creation d'une fonction listReservation pour l'appel de l'api du liste des reservations depuis le BACK-OFFICE
+			-Ajout  des conditions dans la fonction pour pouvoir fltrer par date
+		FRONTEND
+			-Creation d'une page liste reservation avec une filtre dedans
+			-Integration de la function du BACKEND avec la page 
+		
+
