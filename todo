@@ -8,22 +8,109 @@ DEV 1: Fenitra
 	COTE BACK-OFFICE
 		BASE
 			-Verification et modification des scripts de la base de donnees
+			-Script pour la table hotel
 		BACKEND
-			-Creation de l'api pour faire une reservation
-			-Creation de l'api pour liste des reservation
+
+			-Creation de l’API pour faire une reservation
+
+				Classe : ReservationController
+
+				Fonction : createReservation(@RequestBody ReservationDTO reservationDTO)
+
+				Classe : ReservationService
+
+				Fonction : saveReservation(ReservationDTO reservationDTO)
+
+				Classe : ReservationRepository
+
+				Fonction : save(Reservation reservation)
+
+				Classe : Reservation (Entity)
+
+				Mapping JPA (@Entity, @Table, @Column)
+
+			-Creation de l’API pour la liste des reservations
+
+				Classe : ReservationController
+
+				Fonction : getAllReservations()
+
+				Classe : ReservationService
+
+				Fonction : findAllReservations()
+
+				Classe : ReservationRepository
+
+				Fonction : findAll()
+
 		FRONTEND
-			-Creation d'une page reservation.jsp pour le formulaire de reservation
-			-Appel de l'api dans le formulaire et test du formulaire
-	
-DEV 2: Tina
-	COTE FRONT-OFFICE
-		PROJET
+
+			Creation de la page reservation.jsp pour le formulaire de reservation
+
+				Fichier : reservation.jsp
+
+				Formulaire HTML (<form>)
+
+				Champs : date, client, trajet, nombre de places, etc.
+
+				Appel de l’API dans le formulaire et test du formulaire
+
+				Fichier : reservation.jsp
+
+				Script JS / AJAX
+
+				Fonction JS : submitReservation()
+
+				URL API appelee : /api/backoffice/reservations/create
+
+				Verification des reponses (succès / erreur)
+
+DEV 2: Tina 
+	PROJET
 			-Configuration du framework SPRING MVC car SPRING-BOOT avant 
-		BACKEND
-			-Creation d'une fonction listReservation pour l'appel de l'api du liste des reservations depuis le BACK-OFFICE
-			-Ajout  des conditions dans la fonction pour pouvoir fltrer par date
-		FRONTEND
-			-Creation d'une page liste reservation avec une filtre dedans
-			-Integration de la function du BACKEND avec la page 
-		
+
+	COTE FRONT-OFFICE
+			BACKEND
+
+				Creation d’une fonction listReservation pour appeler l’API du BACK-OFFICE
+
+					Classe : ReservationFrontService
+
+					Fonction : listReservation()
+
+					Classe : ReservationApiClient
+
+					Fonction : getReservationsFromBackOffice()
+
+					Appel REST (RestTemplate ou WebClient)
+
+					Ajout des conditions pour filtrer par date
+
+					Classe : ReservationFrontService
+
+					Fonction : listReservationByDate(LocalDate startDate, LocalDate endDate)
+
+					Classe : ReservationApiClient
+
+					Fonction : getReservationsByDate(startDate, endDate)
+
+			FRONTEND
+
+				Creation d’une page liste reservation avec filtre
+
+					Fichier : listeReservation.jsp
+
+					Tableau HTML des reservations
+
+					Champs filtre : date debut / date fin
+
+					Integration de la fonction du BACKEND avec la page
+
+					Classe : ReservationFrontController
+
+					Fonction : showReservations(Model model)
+
+					Fonction : filterReservationsByDate(@RequestParam startDate, @RequestParam endDate)
+
+					Passage des donnees via Model vers listeReservation.jsp
 
