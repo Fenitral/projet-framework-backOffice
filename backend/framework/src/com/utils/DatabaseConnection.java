@@ -21,7 +21,7 @@ public class DatabaseConnection {
                 driver = "org.postgresql.Driver";
             }
             if (url == null || url.isEmpty()) {
-                url = "jdbc:postgresql://localhost:5432/postgres";
+                url = "jdbc:postgresql://localhost:5432/travel_agency";
             }
             if (username == null || username.isEmpty()) {
                 username = "postgres";

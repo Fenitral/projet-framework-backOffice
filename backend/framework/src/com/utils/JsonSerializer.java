@@ -2,6 +2,7 @@ package com.utils;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.sql.Timestamp;
 
 public class JsonSerializer {
 
@@ -23,6 +24,14 @@ public class JsonSerializer {
         // Types simples
         if (isPrimitive(obj)) {
             return formatPrimitive(obj);
+        }
+
+        // Date / Timestamp -> sérialiser comme string ISO
+        if (obj instanceof Timestamp ts) {
+            return "\"" + escape(ts.toString()) + "\"";
+        }
+        if (obj instanceof java.util.Date date) {
+            return "\"" + escape(date.toString()) + "\"";
         }
 
         // Map
