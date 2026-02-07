@@ -26,6 +26,7 @@ INSERT INTO local.hotel (name, addresse, phone) VALUES
 ('Le Pavillon', '789 Boulevard Ratsimandrava, Antsirabe', '034 00 000 03');
 
 INSERT INTO local.reservation_temp (client, nb_people, dateheure, hotel_id) VALUES
-('Jean Dupont', 2, '2026-02-10 14:00:00', 1),
-('Marie Martin', 4, '2026-02-15 10:00:00', 2),
-('Pierre Rakoto', 1, '2026-02-20 18:30:00', 3);
+('Jean Dupont', 2, '2026-02-10 14:00:00', 1);
+
+-- ('Marie Martin', 4, '2026-02-15 10:00:00', 2),
+-- ('Pierre Rakoto', 1, '2026-02-20 18:30:00', 3);

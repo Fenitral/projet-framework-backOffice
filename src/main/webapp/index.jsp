@@ -192,7 +192,7 @@
     </div>
 
     <script>
-        const API_BASE = window.location.pathname.replace(/\/[^\/]*$/, '');
+        const API_BASE = '/' + window.location.pathname.split('/')[1];
 
         // Charger les hôtels au démarrage
         document.addEventListener('DOMContentLoaded', function() {
