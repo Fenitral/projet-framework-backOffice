@@ -102,6 +102,13 @@ public class ReservationController {
                                           @Param("hotelId") int hotelId) throws Exception {
         Reservation reservation = new Reservation();
         
+        // Normaliser le format datetime: "2026-02-10T14:00" -> "2026-02-10 14:00:00"
+        String normalizedDate = dateheure.replace("T", " ");
+        if (normalizedDate.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}")) {
+            normalizedDate += ":00"; // Ajouter les secondes si manquantes
+        }
+        Timestamp ts = Timestamp.valueOf(normalizedDate);
+        
         String sql = "INSERT INTO local.reservation_temp (client, nb_people, dateheure, hotel_id) " +
                      "VALUES (?, ?, ?, ?) RETURNING reservation_id";
         
@@ -110,7 +117,7 @@ public class ReservationController {
             
             ps.setString(1, client);
             ps.setInt(2, nbPeople);
-            ps.setTimestamp(3, Timestamp.valueOf(dateheure.replace("T", " ")));
+            ps.setTimestamp(3, ts);
             ps.setInt(4, hotelId);
             
             try (ResultSet rs = ps.executeQuery()) {
@@ -118,7 +125,7 @@ public class ReservationController {
                     reservation.setReservationId(rs.getInt("reservation_id"));
                     reservation.setClient(client);
                     reservation.setNbPeople(nbPeople);
-                    reservation.setDateheure(Timestamp.valueOf(dateheure.replace("T", " ")));
+                    reservation.setDateheure(ts);
                     reservation.setHotelId(hotelId);
                 }
             }

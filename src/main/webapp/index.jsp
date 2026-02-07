@@ -282,9 +282,13 @@
             })
             .then(response => response.json())
             .then(result => {
-                showAlert('Réservation créée avec succès!', 'success');
-                document.getElementById('reservationForm').reset();
-                loadReservations();
+                if (result.status === 'error') {
+                    showAlert('Erreur: ' + (result.data || 'Échec de la création'), 'error');
+                } else {
+                    showAlert('Réservation créée avec succès!', 'success');
+                    document.getElementById('reservationForm').reset();
+                    loadReservations();
+                }
             })
             .catch(error => {
                 console.error('Erreur:', error);

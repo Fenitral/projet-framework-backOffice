@@ -24,11 +24,11 @@ if not exist "%JAVA_HOME%" (
     exit /b 1
 )
 
-echo.
-echo 0. Arret de Tomcat...
-set "CATALINA_HOME=%TOMCAT_PATH%"
-call "%TOMCAT_PATH%\bin\shutdown.bat" 2>nul
-timeout /t 3 /nobreak >nul
+REM echo.
+REM echo 0. Arret de Tomcat...
+REM set "CATALINA_HOME=%TOMCAT_PATH%"
+REM call "%TOMCAT_PATH%\bin\shutdown.bat" 2>nul
+REM timeout /t 3 /nobreak >nul
 
 echo.
 echo 1. Nettoyage des anciens fichiers...
