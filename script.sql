@@ -25,6 +25,9 @@ INSERT INTO local.hotel (name, addresse, phone) VALUES
 ('Hotel Carlton', '456 Rue République, Antananarivo', '034 00 000 02'),
 ('Le Pavillon', '789 Boulevard Ratsimandrava, Antsirabe', '034 00 000 03');
 
+delete from local.reservation_temp;
+delete from local.hotel;
+
 INSERT INTO local.reservation_temp (client, nb_people, dateheure, hotel_id) VALUES
 ('Jean Dupont', 2, '2026-02-10 14:00:00', 1);
 
