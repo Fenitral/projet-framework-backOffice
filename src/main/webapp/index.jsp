@@ -13,7 +13,7 @@
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ffff 0%, #ffff 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -22,7 +22,7 @@
             margin: 0 auto;
         }
         h1 {
-            color: white;
+            color: black;
             text-align: center;
             margin-bottom: 30px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
@@ -182,13 +182,13 @@
         </div>
         
         <!-- Liste des réservations -->
-        <div class="card">
+        <!-- <div class="card">
             <h2>Liste des Réservations</h2>
             <button class="btn" onclick="loadReservations()">🔄 Actualiser</button>
             <div id="reservationsTable">
                 <p class="loading">Chargement des réservations</p>
             </div>
-        </div>
+        </div> -->
     </div>
 
     <script>

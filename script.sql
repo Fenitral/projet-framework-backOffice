@@ -20,13 +20,15 @@ CREATE TABLE local.reservation_temp (
 );
 
 -- Données de test
-INSERT INTO local.hotel (name, addresse, phone) VALUES
-('Grand Hotel', '123 Avenue de Paris, Antananarivo', '034 00 000 01'),
-('Hotel Carlton', '456 Rue République, Antananarivo', '034 00 000 02'),
-('Le Pavillon', '789 Boulevard Ratsimandrava, Antsirabe', '034 00 000 03');
-
 delete from local.reservation_temp;
 delete from local.hotel;
+
+-- Insertion des hôtels
+INSERT INTO local.hotel (name, addresse, phone) VALUES
+('Colbert', 'Avenue de l''Indépendance, Antananarivo', '034 01 234 56'),
+('Novotel', 'Route de l''Aéroport, Ivato', '034 02 345 67'),
+('Ibis', 'Rue Rainandriamampandry, Antananarivo', '034 03 456 78'),
+('Lokanga', 'Avenue du 26 Juin, Antananarivo', '034 04 567 89'); 
 
 INSERT INTO local.reservation_temp (client, nb_people, dateheure, hotel_id) VALUES
 ('Jean Dupont', 2, '2026-02-10 14:00:00', 1);

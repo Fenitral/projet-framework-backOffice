@@ -4,7 +4,7 @@ echo   Compilation et deploiement du projet
 echo ========================================
 
 REM Variables de configuration
-set TOMCAT_PATH=D:\apache-tomcat-10.1.28
+set TOMCAT_PATH=D:\logiciels\apache-tomcat-10.1.31
 set JAVA_HOME=C:\Program Files\Java\jdk-17
 set PROJECT_NAME=reservation-system
 
