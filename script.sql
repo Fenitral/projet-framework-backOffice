@@ -19,7 +19,10 @@ CREATE TABLE local.reservation_temp (
     hotel_id INT REFERENCES local.hotel(hotel_id)
 );
 
--- Données de test
+-- Suppression et réinitialisation des compteurs ID
+TRUNCATE TABLE local.reservation_temp RESTART IDENTITY CASCADE;
+TRUNCATE TABLE local.hotel RESTART IDENTITY CASCADE;
+
 delete from local.reservation_temp;
 delete from local.hotel;
 
@@ -30,8 +33,15 @@ INSERT INTO local.hotel (name, addresse, phone) VALUES
 ('Ibis', 'Rue Rainandriamampandry, Antananarivo', '034 03 456 78'),
 ('Lokanga', 'Avenue du 26 Juin, Antananarivo', '034 04 567 89'); 
 
-INSERT INTO local.reservation_temp (client, nb_people, dateheure, hotel_id) VALUES
-('Jean Dupont', 2, '2026-02-10 14:00:00', 1);
+insert into local.reservation_temp (client, nb_people, dateheure, hotel_id) values
+('1', 11, '2026-02-05 00:01:00', 3),
+('2', 1, '2026-02-05 16:23:55', 3),
+('3', 2, '2026-02-09 10:17:00', 1),
+('4', 4, '2026-02-01 15:25:00', 2),
+('5', 4, '2026-01-28 07:11:00', 1),
+('6', 5, '2026-01-28 07:45:00', 1),
+('7', 13, '2026-02-28 08:25:00', 2),
+('8', 8, '2026-02-28 13:00:00', 2),
+('9', 7, '2026-02-15 13:00:00', 1),
+('10', 1, '2026-02-18 22:55:00', 4);
 
--- ('Marie Martin', 4, '2026-02-15 10:00:00', 2),
--- ('Pierre Rakoto', 1, '2026-02-20 18:30:00', 3);
