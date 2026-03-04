@@ -1,4 +1,4 @@
-create database travel_agency;
+create database reservation_voiture;
 \c travel_agency;
 
 CREATE SCHEMA local;
@@ -13,6 +13,7 @@ create TABLE local.hotel (
 
 CREATE TABLE local.reservation_temp (
     reservation_id SERIAL PRIMARY KEY,
+    
     client VARCHAR(50) NOT NULL,
     nb_people INT NOT NULL,
     dateheure TIMESTAMP NOT NULL,
