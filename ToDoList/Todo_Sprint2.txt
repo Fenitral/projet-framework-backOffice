@@ -1,0 +1,75 @@
+Table Vehicule
+id
+reference
+place
+TypeCarburant => ESSENCE(ES), DIESEL(D), ELECTRIQUE(EL), Hybride(H)
+ 
+
+pas de FrontOffice
+
+CRUD 
+
+Preparation de protection de BO
+Table Token
+id
+token_libelle => generer token => GUID
+date_expiration (heure)
+ pas d'interface => main seulement pour populer ou remplir la table Token
+
+ date => efa lasa, ho avy => on peut regenerer
+
+
+
+
+FrontOffice => ajout token
+stockage token => constance ou fichier de configuration
+
+BackOffice => verification token
+
+apetaka @URL => token
+
+Appel avec URL => API => doit envoyer token
+fournisseur APi => token => entree dans requete 
+envoie dans Query seulement token
+arriver dans liste => on verifie d'abord token si existe ou pas 
+existe pas => refuser
+existe => verifier => expirer ou pas => expirer => pas d'acces
+pas expirer => on donne la reponse
+
+
+sprint2:
+1-vehicule:
+id |reference |  nb_place | TypeCarburant(D,Es,H,EI)
+back-office fotsiny
+CRUD 
+bouton ajouter
+2-proteger l'appel de l'api
+fW: Manana api: list_reservation
+creation table 
+id
+token
+expiration(misy-heure)
+==> main fotsiny
+
+ny manaraka: 
+FO: m-stock an le token any anaty file config
+BO:
+le API: mijery hoe ana3 ao @ le header ve le token
+si existe , jerena hoe expiree ou non
+si expiree: ts mahazo 
+rah ts expiree: mahazo an le API
+
+description : 
+voici ce que nous devons faire pour continuer ce projet :
+1-faire un CRUD de vehicule
+2- proteger l'appel de l'api :
+-creer l’api pour avoir la liste de reservation
+-creer la table token_expiration (id, token :=>varchar, expiration =>dateheure)
+FO :
+-stocker token dans un fichier de configuration
+BO :
+-créer une fonction (fonctionnalite)  pour voir si’il a  le token dans le header
+	S’’il existe, on regarde si elle est expiree ou pas :
+		Si expiree , pas d’acces a l’API
+		Si elle n’est pas expiree, elle a acces a l’API.
+	S’il n’existe pas, il n’a pas d’acces a l’api

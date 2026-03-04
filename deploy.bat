@@ -1,91 +1,165 @@
 @echo off
-echo ========================================
-echo   Compilation et deploiement du projet
-echo ========================================
+setlocal enabledelayedexpansion
 
-REM Variables de configuration
+set APP_NAME=reservation
+set SRC=src
+set BUILD=build
+set LIB_WEBINF=WEB-INF\lib
+set CLASSES_WEBINF=WEB-INF\classes
+@REM set TOMCAT_LIB=D:\logiciels\apache-tomcat-10.1.31\lib
+set TOMCAT_LIB=D:\logiciels\apache-tomcat-10.1.31\lib
+set FRAMEWORK_JAR=..\Framework\framework.jar
+set WAR_NAME=%APP_NAME%.war
+@REM set TOMCAT_PATH=D:\logiciels\apache-tomcat-10.1.31
 set TOMCAT_PATH=D:\logiciels\apache-tomcat-10.1.31
-set JAVA_HOME=C:\Program Files\Java\jdk-17
-set PROJECT_NAME=reservation-system
+set WEBAPP_SOURCE=%SRC%\main\webapp
+set APP_LIB=%WEBAPP_SOURCE%\WEB-INF\lib
+set FRAMEWORK_JAR=%APP_LIB%\framework.jar
 
-REM Verification de l'existence de Tomcat
-if not exist "%TOMCAT_PATH%" (
-    echo ERREUR: Tomcat n'est pas trouve a %TOMCAT_PATH%
-    echo Veuillez modifier TOMCAT_PATH dans ce fichier
-    pause
-    exit /b 1
+rem Nettoyage
+echo Nettoyage du build...
+if exist %BUILD% rmdir /s /q %BUILD%
+mkdir %BUILD%
+mkdir %BUILD%\WEB-INF\classes
+mkdir %BUILD%\WEB-INF\lib
+
+rem Compilation
+echo Compilation des fichiers source...
+
+rem Créer la liste des fichiers .java avec chemins relatifs
+cd %SRC%
+for /r %%i in (*.java) do (
+    echo %%~fi >> ..\sources_abs.tmp
 )
-
-REM Verification de Java
-if not exist "%JAVA_HOME%" (
-    echo ERREUR: Java n'est pas trouve a %JAVA_HOME%
-    echo Veuillez modifier JAVA_HOME dans ce fichier
-    pause
-    exit /b 1
-)
-
-REM echo.
-REM echo 0. Arret de Tomcat...
-REM set "CATALINA_HOME=%TOMCAT_PATH%"
-REM call "%TOMCAT_PATH%\bin\shutdown.bat" 2>nul
-REM timeout /t 3 /nobreak >nul
-
-echo.
-echo 1. Nettoyage des anciens fichiers...
-if exist "build" rmdir /s /q build
-if exist "%TOMCAT_PATH%\webapps\%PROJECT_NAME%" rmdir /s /q "%TOMCAT_PATH%\webapps\%PROJECT_NAME%"
-if exist "%TOMCAT_PATH%\webapps\%PROJECT_NAME%.war" del "%TOMCAT_PATH%\webapps\%PROJECT_NAME%.war"
-if exist "%TOMCAT_PATH%\work\Catalina\localhost\%PROJECT_NAME%" rmdir /s /q "%TOMCAT_PATH%\work\Catalina\localhost\%PROJECT_NAME%"
-
-echo.
-echo 2. Creation des repertoires de build...
-mkdir build\WEB-INF\classes
-mkdir build\WEB-INF\lib
-
-echo.
-echo 3. Compilation de tous les fichiers Java...
-set "SRC=backend\framework\src"
-set "CP=backend\framework\lib\servlet-api.jar;backend\framework\lib\postgresql-42.7.2.jar"
-
-"%JAVA_HOME%\bin\javac" -cp "%CP%" -d build\WEB-INF\classes -sourcepath "%SRC%" "%SRC%\com\annotations\Api.java" "%SRC%\com\annotations\Authorized.java" "%SRC%\com\annotations\ControllerAnnotation.java" "%SRC%\com\annotations\GetMapping.java" "%SRC%\com\annotations\HandleUrl.java" "%SRC%\com\annotations\Param.java" "%SRC%\com\annotations\PostMapping.java" "%SRC%\com\annotations\Role.java" "%SRC%\com\annotations\Session.java" "%SRC%\com\classes\ModelView.java" "%SRC%\com\models\Hotel.java" "%SRC%\com\models\Reservation.java" "%SRC%\com\exceptions\HttpException.java" "%SRC%\com\exceptions\BadRequestException.java" "%SRC%\com\exceptions\InternalServerErrorException.java" "%SRC%\com\exceptions\NotFoundException.java" "%SRC%\com\interfaces\SessionUserProvider.java" "%SRC%\com\utils\ApiResponse.java" "%SRC%\com\utils\PropertiesUtil.java" "%SRC%\com\utils\DatabaseConnection.java" "%SRC%\com\utils\JsonSerializer.java" "%SRC%\com\utils\UrlPattern.java" "%SRC%\com\utils\SessionMap.java" "%SRC%\com\utils\MappingHandler.java" "%SRC%\com\utils\ParametersHandler.java" "%SRC%\com\utils\ObjectBinder.java" "%SRC%\com\utils\AuthManager.java" "%SRC%\com\utils\ErrorHandler.java" "%SRC%\com\utils\FileStorage.java" "%SRC%\com\utils\ScanningUrl.java" "%SRC%\com\utils\MappingExecutor.java" "%SRC%\com\controllers\ReservationController.java" "%SRC%\com\framework\FrontServlet.java"
-
-if errorlevel 1 (
-    echo ERREUR: Echec de la compilation
-    pause
-    exit /b 1
-)
-
-echo.
-echo 4. Copie des ressources...
-copy backend\framework\src\framework.properties build\WEB-INF\classes\
-copy src\main\webapp\*.jsp build\
-copy src\main\webapp\WEB-INF\web.xml build\WEB-INF\
-
-REM Copie des librairies necessaires
-copy backend\framework\lib\servlet-api.jar build\WEB-INF\lib\
-copy backend\framework\lib\postgresql-42.7.2.jar build\WEB-INF\lib\
-
-echo.
-echo 5. Creation du fichier WAR...
-cd build
-"%JAVA_HOME%\bin\jar" -cvf ..\%PROJECT_NAME%.war .
 cd ..
 
+rem Convertir les chemins absolus en relatifs
+set "CURRENT_DIR=%CD%"
+(for /f "usebackq delims=" %%a in ("sources_abs.tmp") do (
+    set "abs_path=%%a"
+    set "rel_path=!abs_path:%CURRENT_DIR%\=!"
+    echo !rel_path!
+)) > sources.txt
+
+del sources_abs.tmp 2>nul
+
+javac -classpath "%TOMCAT_LIB%\servlet-api.jar;%FRAMEWORK_JAR%;%APP_LIB%\*" -parameters -d %BUILD%\WEB-INF\classes @"sources.txt"
+if errorlevel 1 (
+    echo Erreur de compilation!
+    del sources.txt 2>nul
+    pause
+    exit /b 1
+)
+del sources.txt 2>nul
+
+
+rem Copier framework.jar
+copy /y %FRAMEWORK_JAR% %BUILD%\WEB-INF\lib\
+
+rem Copier les libs de l'application (postgresql, etc.)
+if exist "%APP_LIB%" (
+    xcopy /s /y /i "%APP_LIB%\*.jar" "%BUILD%\WEB-INF\lib\" >nul
+)
+
+rem =====================================
+rem COPIE COMPLETE DE WEB-INF
+rem =====================================
+echo Copie de tous les fichiers et dossiers WEB-INF...
+
+rem Copier tout le contenu de WEB-INF depuis webapp
+if exist "%WEBAPP_SOURCE%\WEB-INF" (
+    rem Copier tous les fichiers à la racine de WEB-INF
+    if exist "%WEBAPP_SOURCE%\WEB-INF\*.*" (
+        for %%F in ("%WEBAPP_SOURCE%\WEB-INF\*.*") do (
+            copy /y "%%F" "%BUILD%\WEB-INF\" >nul 2>&1
+            echo ✅ %%~nxF copié
+        )
+    )
+    
+    rem Copier tous les sous-dossiers et leur contenu (sauf classes et lib qui sont gérés autrement)
+    for /d %%D in (%WEBAPP_SOURCE%\WEB-INF\*) do (
+        if /i not "%%~nxD"=="classes" (
+            if /i not "%%~nxD"=="lib" (
+                xcopy /s /y /i "%%D" "%BUILD%\WEB-INF\%%~nxD\" >nul
+                echo ✅ WEB-INF\%%~nxD copié
+            )
+        )
+    )
+    
+    echo ✅ Contenu complet de WEB-INF copié
+) else (
+    echo ⚠️ ATTENTION: %WEBAPP_SOURCE%\WEB-INF n'existe pas!
+)
+
+rem =====================================
+rem COPIE DES RESSOURCES PUBLIQUES
+rem =====================================
+echo Copie des ressources publiques...
+
+rem Copier les fichiers publics à la racine de webapp
+if exist "%WEBAPP_SOURCE%\*.jsp" (
+    copy /y "%WEBAPP_SOURCE%\*.jsp" %BUILD%\
+    echo ✅ Fichiers JSP publics copiés
+)
+
+if exist "%WEBAPP_SOURCE%\*.html" (
+    copy /y "%WEBAPP_SOURCE%\*.html" %BUILD%\
+    echo ✅ Fichiers HTML publics copiés
+)
+
+if exist "%WEBAPP_SOURCE%\*.css" (
+    copy /y "%WEBAPP_SOURCE%\*.css" %BUILD%\
+    echo ✅ Fichiers CSS copiés
+)
+
+if exist "%WEBAPP_SOURCE%\*.js" (
+    copy /y "%WEBAPP_SOURCE%\*.js" %BUILD%\
+    echo ✅ Fichiers JS copiés
+)
+
+rem Copier tous les dossiers publics à la racine de webapp (css, js, images, etc.)
+for /d %%D in (%WEBAPP_SOURCE%\*) do (
+    if /i not "%%~nxD"=="WEB-INF" (
+        if /i not "%%~nxD"=="META-INF" (
+            xcopy /s /y /i "%%D" "%BUILD%\%%~nxD\" >nul
+            echo ✅ %%~nxD copié
+        )
+    )
+)
+
+rem Copier META-INF
+if exist "%WEBAPP_SOURCE%\META-INF" (
+    xcopy /s /y "%WEBAPP_SOURCE%\META-INF" "%BUILD%\META-INF\" >nul
+    echo ✅ META-INF copié
+)
+
+rem Vérifier la structure
 echo.
-echo 6. Deploiement sur Tomcat...
-copy %PROJECT_NAME%.war "%TOMCAT_PATH%\webapps\"
+echo 📁 Structure créée dans %BUILD%:
+dir %BUILD% /b
+echo.
+echo 📁 Contenu de WEB-INF:
+dir "%BUILD%\WEB-INF" /b
+echo.
+if exist "%BUILD%\WEB-INF\views" (
+    echo 📁 Contenu de WEB-INF\views:
+    dir "%BUILD%\WEB-INF\views" /s /b
+    echo.
+)
+
+rem Créer le WAR
+echo Création du WAR...
+cd %BUILD%
+jar cvf ..\%WAR_NAME% . >nul
+cd ..
+
+echo ✅ %WAR_NAME% genere avec succes
+
+rem Déployer sur Tomcat
+echo Déploiement sur Tomcat...
+copy /y "%WAR_NAME%" "%TOMCAT_PATH%\webapps\"
 
 echo.
-echo ========================================
-echo   Deploiement termine !
-echo ========================================
+echo 🎯 DEPLOIEMENT TERMINE!
 echo.
-echo Le WAR a ete copie dans Tomcat.
-echo.
-echo Demarrez Tomcat manuellement si besoin:
-echo   %TOMCAT_PATH%\bin\startup.bat
-echo.
-echo Puis accedez a:
-echo   http://localhost:8081/%PROJECT_NAME%
-echo.
-pause
+
