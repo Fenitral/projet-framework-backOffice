@@ -1,0 +1,45 @@
+Team Lead : ETU3273
+Developper 1 = ETU
+Developper 2 = ETU
+
+
+
+Dev 1
+Tache1 = Créer le script d'initialisation 2
+Fichier : gestion_database/scripts/migrations/sprint-0/V1.0__2026-02-06__init_staging.sql
+Fichier : gestion_database/scripts/seed/staging_hotels.sql
+
+
+BACKOFFICE
+Dev2 
+Tache2 = BACKOFFICE - Formulaire Insertion Réservation
+2.a Configuration Base de Données
+Fichier : BackOffice/config/database.properties
+2.b Modèle Hotel
+Fichier : BackOffice/src/models/Hotel.java
+
+Dev1
+2.c Modèle Reservation
+2.d Service Hotel
+2.e Service Reservation
+
+Dev2
+2.f Contrôleur Reservation  (Formulaire + API)
+2.g Vue Formulaire Insertion Réservation
+
+-------------------------------------------------------------
+
+FRONTOFFICE
+Dev1
+Tache 3 = FRONTOFFICE - Liste et Recherche Réservations
+3.a Configuration Base de Données
+Fichier : FrontOffice/src/main/resources/application-staging.yml
+
+Dev2
+3.b DTO Reservation
+3.c Controller FrontOffice => ReservationFrontController
+3.d Vue Liste
+
+
+
+

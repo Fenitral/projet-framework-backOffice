@@ -1,0 +1,21 @@
+Comment tester l'API protégée
+Ton app est déployée sur Tomcat sous le nom test. L'endpoint API qui est maintenant protégé est :
+http://localhost:8081/test/api/reservation/list => port changeable par rapport a nos ports 
+=> sans token => 401 
+
+Test 2 — Avec un token valide (doit retourner les réservations)
+Pour envoyer un header, tu ne peux pas utiliser un navigateur simple. Utilise curl dans ton terminal :
+curl -H "X-API-TOKEN: token dans la table dev_token.sql" http://localhost:8081/test/api/reservation/list
+=> token dans la table dev_token.sql =  550e8400-e29b-41d4-a716-446655440000
+=> doit retourner les réservations (si tu as des données dans ta table de réservations)
+
+Test 3 — Avec un faux token (doit retourner 401)
+curl -H "X-API-TOKEN: token-bidon-qui-nexiste-pas" http://localhost:8081/test/api/reservation/list
+Tu devrais voir : {"error": "Acces refuse : token invalide ou expire"}
+
+Test 4 — Avec le header Authorization: Bearer
+curl -H "Authorization: Bearer 550e8400-e29b-41d4-a716-446655440000" http://localhost:8081/test/api/reservation/list
+
+
+générer un nouveau token sans ouvrir psql
+java -Ddb.url="jdbc:postgresql://localhost:5432/reservation_voiture?currentSchema=dev" -Ddb.user=postgres -Ddb.password=1234 -cp "build\WEB-INF\classes;build\WEB-INF\lib\*" com.cousin.Main generate
