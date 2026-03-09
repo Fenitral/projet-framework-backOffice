@@ -10,7 +10,10 @@ public class ReservationAffecteeDTO {
     private int idHotel;
     private String nomHotel;
     private int ordreVisite;
-    private double distanceDepuisPrecedent;
+    private double distance;
+    private Integer clientId;
+    private String clientName;
+    private String clientEmail;
 
     public ReservationAffecteeDTO() {
     }
@@ -72,11 +75,36 @@ public class ReservationAffecteeDTO {
         this.ordreVisite = ordreVisite;
     }
 
-    public double getDistanceDepuisPrecedent() {
-        return distanceDepuisPrecedent;
+    public double getDistance() {
+        return distance;
     }
 
-    public void setDistanceDepuisPrecedent(double distanceDepuisPrecedent) {
-        this.distanceDepuisPrecedent = distanceDepuisPrecedent;
+    public void setDistance(double distance) {
+        this.distance = distance;
+    }
+
+    public Integer getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(Integer clientId) {
+        this.clientId = clientId;
+    }
+
+    public String getClientName() {
+        return clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
+    }
+
+    public String getClientEmail() {
+        return clientEmail;
+    }
+
+    public void setClientEmail(String clientEmail) {
+        this.clientEmail = clientEmail;
     }
 }
+    

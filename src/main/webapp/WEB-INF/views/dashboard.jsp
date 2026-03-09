@@ -5,7 +5,7 @@
     request.setAttribute("currentPage", "dashboard");
 %>
 
-<%@ include file="../includes/layout-header.jsp" %>
+
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
     

@@ -14,9 +14,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Controller
 public class AssignationController {
@@ -148,12 +146,12 @@ public class AssignationController {
 
     /**
      * Génère ET sauvegarde la planification d'une journée.
+     * Reste sur la page de résultats avec un message de succès.
      * 
-     * GET /api/planification/save?date=2026-03-05&heureDepart=08:00
+     * GET /planification/save?date=2026-03-05&heureDepart=08:00
      */
-    @GetMapping("/api/planification/save")
-    @Json
-    public Map<String, Object> savePlanification(
+    @GetMapping("/planification/save")
+    public ModelView savePlanification(
             @Param("date") String dateStr,
             @Param("heureDepart") String heureStr) throws SQLException {
         
@@ -179,11 +177,12 @@ public class AssignationController {
         // Sauvegarder
         assignationService.sauvegarderPlanification(planification);
         
-        // Retourner la réponse
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("message", "Planification sauvegardée avec succès");
-        response.put("planification", planification);
-        return response;
+        // Retourner à la page de résultats avec un message de succès
+        ModelView mv = new ModelView("/WEB-INF/views/affichageResultats.jsp");
+        mv.addAttribute("planification", planification);
+        mv.addAttribute("datePlanification", date.toString());
+        mv.addAttribute("heureDepart", heure.toString());
+        mv.addAttribute("successMessage", "Planification sauvegardée avec succès !");
+        return mv;
     }
 }

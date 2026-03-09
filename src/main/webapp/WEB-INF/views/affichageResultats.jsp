@@ -249,6 +249,15 @@
     }
 %>
     <div class="container">
+        <!-- Message de succès -->
+        <% String successMessage = (String) request.getAttribute("successMessage"); %>
+        <% if (successMessage != null) { %>
+        <div style="background: #d4edda; color: #155724; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-check-circle"></i>
+            <span><%= successMessage %></span>
+        </div>
+        <% } %>
+        
         <!-- Header -->
         <div class="header">
             <h2><i class="fas fa-clipboard-check"></i> Résultats de la Planification</h2>
@@ -288,13 +297,13 @@
                     String typeVehicule = trajet.getTypeVehicule();
                     String badgeClass = "badge-essence";
                     String typeLabel = "Essence";
-                    if ("D".equalsIgnoreCase(typeVehicule)) {
+                    if ("D".equalsIgnoreCase(typeVehicule) || "DIESEL".equalsIgnoreCase(typeVehicule)) {
                         badgeClass = "badge-diesel";
                         typeLabel = "Diesel";
-                    } else if ("H".equalsIgnoreCase(typeVehicule)) {
+                    } else if ("H".equalsIgnoreCase(typeVehicule) || "HYBRIDE".equalsIgnoreCase(typeVehicule)) {
                         badgeClass = "badge-hybride";
                         typeLabel = "Hybride";
-                    } else if ("EL".equalsIgnoreCase(typeVehicule)) {
+                    } else if ("EL".equalsIgnoreCase(typeVehicule) || "ELECTRIQUE".equalsIgnoreCase(typeVehicule)) {
                         badgeClass = "badge-electrique";
                         typeLabel = "Électrique";
                     }
@@ -330,6 +339,7 @@
                         <thead>
                             <tr>
                                 <th>#</th>
+                                <th>Client</th>
                                 <th>Hôtel</th>
                                 <th>Passagers</th>
                                 <th>Distance depuis précédent</th>
@@ -339,9 +349,10 @@
                             <% for (ReservationAffecteeDTO res : trajet.getListeReservations()) { %>
                             <tr>
                                 <td><%= res.getOrdreVisite() %></td>
+                                <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientName() != null ? res.getClientName() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                                 <td><i class="fas fa-hotel" style="color: #667eea; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
-                                <td><i class="fas fa-user" style="color: #28a745; margin-right: 5px;"></i><%= res.getNbPassager() %></td>
-                                <td><%= String.format("%.1f", res.getDistanceDepuisPrecedent()) %> km</td>
+                                <td><i class="fas fa-users" style="color: #28a745; margin-right: 5px;"></i><%= res.getNbPassager() %></td>
+                                <td><%= String.format("%.1f", res.getDistance()) %> km</td>
                             </tr>
                             <% } %>
                         </tbody>
@@ -365,6 +376,7 @@
                     <thead>
                         <tr>
                             <th>ID Réservation</th>
+                            <th>Client</th>
                             <th>Hôtel</th>
                             <th>Passagers</th>
                             <th>Motif</th>
@@ -374,6 +386,7 @@
                         <% for (ReservationAffecteeDTO res : planification.getReservationsNonAffectees()) { %>
                         <tr>
                             <td>#<%= res.getIdReservation() %></td>
+                            <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientName() != null ? res.getClientName() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                             <td><i class="fas fa-hotel" style="color: #dc3545; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
                             <td><%= res.getNbPassager() %></td>
                             <td><span class="badge" style="background: #f8d7da; color: #721c24;">Capacité insuffisante</span></td>
@@ -394,7 +407,7 @@
             <a href="<%= request.getContextPath() %>/planification" class="btn btn-primary">
                 <i class="fas fa-arrow-left"></i> Nouvelle planification
             </a>
-            <a href="<%= request.getContextPath() %>/api/planification/save?date=<%= datePlanification %>&heureDepart=<%= heureDepart %>" class="btn btn-success">
+            <a href="<%= request.getContextPath() %>/planification/save?date=<%= datePlanification %>&heureDepart=<%= heureDepart %>" class="btn btn-success">
                 <i class="fas fa-save"></i> Sauvegarder cette planification
             </a>
             <a href="<%= request.getContextPath() %>/" class="btn btn-secondary">

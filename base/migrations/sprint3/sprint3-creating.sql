@@ -44,3 +44,6 @@ CREATE TABLE dev.distance (
 
 -- ito mbola ts tafiditra
 alter table dev.hotel add column aeroport VARCHAR(50); 
+
+
+ALTER TABLE dev.assignation ADD COLUMN reservation_id INTEGER;

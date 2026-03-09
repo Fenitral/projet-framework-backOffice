@@ -8,6 +8,8 @@ public class Reservation {
     private String idClient;
     private int nbPassager;
     private Hotel hotel;
+    private Integer clientId;
+    private Client client;
 
     public Reservation() {
     }
@@ -58,5 +60,21 @@ public class Reservation {
 
     public void setHotel(Hotel hotel) {
         this.hotel = hotel;
+    }
+
+    public Integer getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(Integer clientId) {
+        this.clientId = clientId;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
     }
 }

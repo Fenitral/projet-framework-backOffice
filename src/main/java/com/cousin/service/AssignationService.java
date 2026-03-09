@@ -68,8 +68,10 @@ public class AssignationService {
     }
 
     /**
-     * Trie les réservations par distance aéroport-hôtel croissante.
-     * En cas d'égalité, tri alphabétique par nom d'hôtel.
+     * Trie les réservations selon les règles de planification :
+     * 1. Par dateHeureArrive (les plus tôt en premier)
+     * 2. Par distance aéroport-hôtel croissante
+     * 3. En cas d'égalité de dateHeure ET distance → tri alphabétique par nom d'hôtel
      */
     public List<Reservation> sortReservationsByDistance(List<Reservation> reservations) throws SQLException {
         // Créer une map des distances aéroport -> hôtel
@@ -83,16 +85,26 @@ public class AssignationService {
             }
         }
 
-        // Trier par distance, puis par nom d'hôtel (alphabétique)
+        // Trier par dateHeureArrive, puis par distance, puis par nom d'hôtel (alphabétique)
         return reservations.stream()
                 .sorted((r1, r2) -> {
+                    // 1. Comparer par dateHeureArrive
+                    LocalDateTime dt1 = r1.getDateHeureArrive();
+                    LocalDateTime dt2 = r2.getDateHeureArrive();
+                    
+                    if (dt1 != null && dt2 != null && !dt1.equals(dt2)) {
+                        return dt1.compareTo(dt2);
+                    }
+                    
+                    // 2. Même dateHeure ou null -> comparer par distance
                     int dist1 = distanceCache.getOrDefault(r1.getHotel().getIdHotel(), Integer.MAX_VALUE);
                     int dist2 = distanceCache.getOrDefault(r2.getHotel().getIdHotel(), Integer.MAX_VALUE);
                     
                     if (dist1 != dist2) {
                         return Integer.compare(dist1, dist2);
                     }
-                    // Égalité -> tri alphabétique
+                    
+                    // 3. Même distance -> tri alphabétique par nom d'hôtel
                     String nom1 = r1.getHotel().getNom() != null ? r1.getHotel().getNom() : "";
                     String nom2 = r2.getHotel().getNom() != null ? r2.getHotel().getNom() : "";
                     return nom1.compareToIgnoreCase(nom2);
@@ -111,42 +123,58 @@ public class AssignationService {
     }
 
     /**
-     * Sélectionne le meilleur véhicule parmi les candidats.
-     * Priorité : Diesel > autres types. Si égalité, choix aléatoire.
+     * Vérifie si un véhicule est de type Diesel.
+     * Accepte les formats : "D", "Diesel", "diesel", "DIESEL", etc.
      */
-   public TrajetVehiculeDTO selectBestVehicle(List<TrajetVehiculeDTO> candidats, int nbPassagers) {
+    private boolean isDiesel(String typeVehicule) {
+        if (typeVehicule == null) {
+            return false;
+        }
+        String type = typeVehicule.trim().toUpperCase();
+        return type.equals("D") || type.equals("DIESEL");
+    }
+
+    /**
+     * Sélectionne le meilleur véhicule parmi les candidats.
+     * Règles de priorité :
+     * 1. Priorité aux véhicules Diesel
+     * 2. Parmi les Diesel (ou non-Diesel si aucun Diesel disponible), choisir celui avec la capacité minimale suffisante
+     * 3. Si égalité, choix aléatoire
+     */
+    public TrajetVehiculeDTO selectBestVehicle(List<TrajetVehiculeDTO> candidats, int nbPassagers) {
         if (candidats == null || candidats.isEmpty()) {
             return null;
         }
 
-        // Étape 1 : Trouver la capacité minimale suffisante
-        int capaciteMinimale = candidats.stream()
+        // Étape 1 : Séparer les Diesel des autres
+        List<TrajetVehiculeDTO> diesels = candidats.stream()
+                .filter(v -> isDiesel(v.getTypeVehicule()))
+                .collect(Collectors.toList());
+
+        // Utiliser les Diesel s'il y en a, sinon utiliser tous les candidats
+        List<TrajetVehiculeDTO> vehiculesAConsiderer = diesels.isEmpty() ? candidats : diesels;
+
+        // Étape 2 : Parmi ceux-là, trouver la capacité minimale suffisante
+        int capaciteMinimale = vehiculesAConsiderer.stream()
                 .mapToInt(TrajetVehiculeDTO::getPlacesDisponibles)
                 .filter(places -> places >= nbPassagers)
                 .min()
                 .orElse(Integer.MAX_VALUE);
 
         // Filtrer les véhicules avec cette capacité minimale
-        List<TrajetVehiculeDTO> vehiculesOptimaux = candidats.stream()
+        List<TrajetVehiculeDTO> vehiculesOptimaux = vehiculesAConsiderer.stream()
                 .filter(v -> v.getPlacesDisponibles() == capaciteMinimale)
                 .collect(Collectors.toList());
 
-        // Étape 2 : Parmi ceux-là, priorité aux Diesel
-        List<TrajetVehiculeDTO> diesels = vehiculesOptimaux.stream()
-                .filter(v -> TYPE_DIESEL.equalsIgnoreCase(v.getTypeVehicule()))
-                .collect(Collectors.toList());
-
-        List<TrajetVehiculeDTO> selection = diesels.isEmpty() ? vehiculesOptimaux : diesels;
-
-        // Étape 3 : Choix aléatoire
+        // Étape 3 : Choix aléatoire si plusieurs véhicules optimaux
         Random random = new Random();
-        return selection.get(random.nextInt(selection.size()));
+        return vehiculesOptimaux.get(random.nextInt(vehiculesOptimaux.size()));
     }
 
     /**
      * Convertit une Reservation en ReservationAffecteeDTO.
      */
-    private ReservationAffecteeDTO toReservationAffecteeDTO(Reservation r, int ordreVisite, double distanceDepuisPrecedent) {
+    private ReservationAffecteeDTO toReservationAffecteeDTO(Reservation r, int ordreVisite, double Distance) {
         ReservationAffecteeDTO dto = new ReservationAffecteeDTO();
         dto.setIdReservation(r.getIdReservation());
         dto.setDateHeureArrive(r.getDateHeureArrive());
@@ -155,7 +183,17 @@ public class AssignationService {
         dto.setIdHotel(r.getHotel().getIdHotel());
         dto.setNomHotel(r.getHotel().getNom());
         dto.setOrdreVisite(ordreVisite);
-        dto.setDistanceDepuisPrecedent(distanceDepuisPrecedent);
+        dto.setDistance(Distance);
+        
+        // Ajouter les informations du client
+        if (r.getClientId() != null) {
+            dto.setClientId(r.getClientId());
+        }
+        if (r.getClient() != null) {
+            dto.setClientName(r.getClient().getName());
+            dto.setClientEmail(r.getClient().getEmail());
+        }
+        
         return dto;
     }
 
@@ -227,6 +265,7 @@ public class AssignationService {
 
     /**
      * Effectue la planification complète pour une date donnée.
+     * Exclut les réservations déjà planifiées (qui ont une assignation).
      */
     public PlanificationDTO planifier(LocalDate date, LocalDateTime heureDepart) throws SQLException {
         PlanificationDTO planification = new PlanificationDTO();
@@ -234,6 +273,12 @@ public class AssignationService {
 
         // 1. Récupérer les réservations du jour
         List<Reservation> reservations = getReservationsByDate(date);
+        
+        // 1b. Exclure les réservations déjà assignées
+        List<Integer> reservationsDejaAssignees = assignationRepository.findAssignedReservationIds();
+        reservations = reservations.stream()
+                .filter(r -> !reservationsDejaAssignees.contains(r.getIdReservation()))
+                .collect(Collectors.toList());
         
         // 2. Récupérer tous les véhicules
         List<Vehicule> vehicules = getAllVehicules();
@@ -308,13 +353,13 @@ public class AssignationService {
      * Sauvegarde la planification dans la base de données.
      */
     public void sauvegarderPlanification(PlanificationDTO planification) throws SQLException {
-        // Supprimer les anciennes assignations de cette date
-        assignationRepository.deleteByDate(planification.getDatePlanification());
-
-        // Insérer les nouvelles assignations
+        // Insérer les nouvelles assignations (ne pas supprimer les anciennes)
         for (TrajetVehiculeDTO trajet : planification.getTrajets()) {
             for (ReservationAffecteeDTO reservation : trajet.getListeReservations()) {
                 Assignation assignation = new Assignation();
+                
+                // Enregistrer l'ID de la réservation pour éviter les doublons
+                assignation.setReservationId(reservation.getIdReservation());
                 
                 // Gérer le cas où idClient peut être null ou non numérique
                 String idClientStr = reservation.getIdClient();

@@ -10,22 +10,23 @@ import java.util.List;
 public class AssignationRepository {
 
     public void insert(Assignation assignation) throws SQLException {
-        String sql = "INSERT INTO dev.assignation(client_id, regroupement_id, vehicule_id, assigned_date) " +
-                     "VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO dev.assignation(reservation_id, client_id, regroupement_id, vehicule_id, assigned_date) " +
+                     "VALUES (?, ?, ?, ?, ?)";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            statement.setInt(1, assignation.getClientId());
+            statement.setInt(1, assignation.getReservationId());
+            statement.setInt(2, assignation.getClientId());
             
             if (assignation.getRegroupementId() > 0) {
-                statement.setInt(2, assignation.getRegroupementId());
+                statement.setInt(3, assignation.getRegroupementId());
             } else {
-                statement.setNull(2, Types.INTEGER);
+                statement.setNull(3, Types.INTEGER);
             }
             
-            statement.setInt(3, assignation.getVehiculeId());
-            statement.setTimestamp(4, Timestamp.valueOf(assignation.getAssignedDate()));
+            statement.setInt(4, assignation.getVehiculeId());
+            statement.setTimestamp(5, Timestamp.valueOf(assignation.getAssignedDate()));
             
             statement.executeUpdate();
 
@@ -35,6 +36,23 @@ public class AssignationRepository {
                 }
             }
         }
+    }
+
+    /**
+     * Récupère les IDs des réservations déjà assignées.
+     */
+    public List<Integer> findAssignedReservationIds() throws SQLException {
+        String sql = "SELECT DISTINCT reservation_id FROM dev.assignation WHERE reservation_id IS NOT NULL";
+        List<Integer> ids = new ArrayList<>();
+
+        try (Connection connection = DbConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getInt("reservation_id"));
+            }
+        }
+        return ids;
     }
 
     public List<Assignation> findByDate(java.time.LocalDate date) throws SQLException {
