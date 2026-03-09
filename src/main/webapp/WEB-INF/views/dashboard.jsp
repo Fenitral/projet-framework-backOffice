@@ -33,6 +33,18 @@
         </div>
     </div>
     
+    <!-- Card Planification -->
+    <div class="card">
+        <div class="card-body text-center">
+            <i class="fas fa-calendar-alt" style="font-size: 3em; color: #667eea; margin-bottom: 15px;"></i>
+            <h3 style="color: #667eea; margin: 0;">Planification</h3>
+            <p style="color: #6c757d; margin: 5px 0;">Assignation des véhicules</p>
+            <a href="<%= request.getContextPath() %>/planification" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <i class="fas fa-cogs"></i> Planifier
+            </a>
+        </div>
+    </div>
+    
     <!-- Card Articles -->
     <div class="card">
         <div class="card-body text-center">
@@ -112,6 +124,9 @@
         </div>
         <div class="card-body">
             <div style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="<%= request.getContextPath() %>/planification" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <i class="fas fa-calendar-alt"></i> Planification
+                </a>
                 <a href="<%= request.getContextPath() %>/reservation/create" class="btn btn-success">
                     <i class="fas fa-plus"></i> Nouvelle Réservation
                 </a>

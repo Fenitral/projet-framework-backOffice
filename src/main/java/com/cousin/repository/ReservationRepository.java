@@ -72,7 +72,7 @@ public class ReservationRepository {
      */
     public List<Reservation> findByDate(LocalDate date) throws SQLException {
         String sql = "SELECT r.Id_reservation, r.DateHeureArrive, r.idClient, r.nbPassager, " +
-                     "h.Id_Hotel, h.nom, h.aeroport " +
+                     "h.Id_Hotel, h.nom " +
                      "FROM dev.reservation r " +
                      "JOIN dev.Hotel h ON r.Id_Hotel = h.Id_Hotel " +
                      "WHERE DATE(r.DateHeureArrive) = ? " +
@@ -88,7 +88,6 @@ public class ReservationRepository {
                     Hotel hotel = new Hotel();
                     hotel.setIdHotel(resultSet.getInt("Id_Hotel"));
                     hotel.setNom(resultSet.getString("nom"));
-                    hotel.setAeroport(resultSet.getString("aeroport"));
 
                     Reservation reservation = new Reservation();
                     reservation.setIdReservation(resultSet.getInt("Id_reservation"));

@@ -1,0 +1,103 @@
+BackOffice : Gestion des assignations de véhicules
+    Backend :Responsable - ETU003245 - Fenitra
+        *Module 1 : Base de données et scripts*
+
+            -Créer les tables manquantes dans la base
+
+            -Table preparation
+             id
+             vitesse_moyenne (km/h)
+             temps_attente (minutes)
+
+            -Table distance  
+             id
+             lieu_depart
+             lieu_arrivee  
+             distance_km
+
+            -Modifier table hotel
+             ajouter champ is_aeroport (boolean)
+
+            -Modifier table vehicule
+             ajouter champ lieu_actuel
+             ajouter champ statut (DISPONIBLE, ASSIGNE, MAINTENANCE)
+
+   	    -Fournir un script de réinitialisation (DROP puis CREATE) et un script d'initialisation avec des données de test.
+
+       *Module 2 : Service d'assignation*
+
+        *Taches pour planification
+
+            -Créer ReservationAffecteeDTO (contient les informations de la réservation + l'ordre de visite)
+
+            -Créer TrajetVehiculeDTO :
+                 -vehicule (ou vehiculeId, reference)
+
+		   -listeReservations (List<ReservationAffecteeDTO>) triée par ordre de visite
+                 -distance_totale
+                 -heure_depart 
+                 -heure_retour_prevue
+
+	      -Créer PlanificationDTO :
+                 -date_planification
+                 -List<TrajetVehiculeDTO> trajets
+		         -List<ReservationDTO> reservationsNonAffectees
+
+          -Créer ParametreService
+                 -getVitesseMoyenne()
+                 -updateParametres()
+
+          -Créer DistanceService  
+                 -getDistance(lieuDepart, lieuArrivee)
+                 -getAllDistances()
+                 -calculerDistanceTotaleTrajet()
+
+       *Taches pour Service d'assignation (AssignationService)
+
+             -Récupérer toutes les réservations du jour :
+                  -List<Reservation> getReservationsByDate(LocalDate date)
+                  -List<Vehicule> getAllVehicules()
+
+             -Trier les réservations par distance aéroport-hôtel croissante:
+                  -List<Reservation> sortReservationsByDistance(List<Reservation> reservations, Map<String,Double> distanceMap, Long aeroportId)
+                  -Pour chaque réservation, calculer la distance
+
+             -Affecter les réservations aux véhicules
+                  -Pour chaque réservation : List<VehiculeState> candidats = findCandidates(etatsVehicules, reservation.getNombrePassagers())
+                  -Fonctions à implémenter :
+                         -Si une réservation est faite pour une date donnée (les clients sont inséparables : on ne peut pas les répartir dans plusieurs véhicules si la capacité est insuffisante), seuls les véhicules ayant une capacité suffisante peuvent se voir assigner ces passagers .               
+                         -En cas d'égalité (plusieurs véhicules disponibles), on donne la priorité aux véhicules diesel. S'il y a encore plusieurs diesels, on choisit au hasard.
+	                     - On traite d'abord les réservations les plus proches (de l'aéroport),on prend par ordre Alphabethiques si la distances est pareils
+
+              -Calculer la distance totale parcourue par le véhicule :
+                     -Départ aéroport → premier hôtel (distance dans distance avec lieu_depart = aéroport, lieu_arrivee = premier hôtel)
+                     -Puis entre chaque hôtel consécutif (distance dans distance avec lieu_depart = hôtel i, lieu_arrivee = hôtel i+1)
+                     -Puis dernier hôtel → aéroport (distance dans distance avec lieu_depart = dernier hôtel, lieu_arrivee = aéroport)
+
+              -Calculer heure de retour 
+                     -Basé sur distance totale + vitesse moyenne + temps d'attente par hôtel
+
+  Frontend :Responsable - ETU003368 - Ange
+
+     **Module 3 – Création de la page JSP
+
+        -Créer page planification.jsp
+        -Ajout champ date , Bouton "Générer planification"
+
+     **Module 4 – Affichage dynamique des résultats
+
+        -Créer page affichageResultats.jsp
+         Section trajets assignés (véhicule + réservations + horaires + distance)
+         Section réservations non assignées 
+
+        - Ajouter du CSS pour rendre l'affichage lisible (bordures, marges, couleurs).
+         couleurs : assigné = vert, non assigné = rouge
+
+     *Module 5 – Tests et intégration*
+
+        -Tester avec des réservations existantes
+        -Test capacité véhicule vs nombre passagers
+        -Test priorité véhicules diesel
+        -Test calcul distances multiples hôtels
+        -Test calcul heures de retour
+        -intégrée avec l'API backend
