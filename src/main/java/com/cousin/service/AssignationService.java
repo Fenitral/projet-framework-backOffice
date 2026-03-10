@@ -216,7 +216,7 @@ public class AssignationService {
 
     /**
      * Calcule la distance totale parcourue par un véhicule.
-     * Aéroport -> Hôtel1 -> Hôtel2 -> ... -> HôtelN -> Aéroport
+     * Somme des distances aéroport -> chaque hôtel
      */
     public double calculerDistanceTotaleVehicule(TrajetVehiculeDTO trajet) throws SQLException {
         List<ReservationAffecteeDTO> reservations = trajet.getListeReservations();
@@ -224,43 +224,56 @@ public class AssignationService {
             return 0;
         }
 
-        List<Integer> lieuIds = new ArrayList<>();
-        lieuIds.add(AEROPORT_ID); // Départ aéroport
-
-        // Ajouter tous les hôtels dans l'ordre de visite
+        // Somme des distances depuis le point précédent (déjà calculées)
+        double distanceTotale = 0;
         for (ReservationAffecteeDTO r : reservations) {
-            lieuIds.add(r.getIdHotel());
+            distanceTotale += r.getDistance();
         }
 
-        lieuIds.add(AEROPORT_ID); // Retour aéroport
+        return distanceTotale;
+    }
 
-        return distanceService.calculerDistanceTotaleTrajet(lieuIds);
+    /**
+     * Calcule la distance réelle parcourue par le véhicule.
+     * Trajet: Aéroport → Hôtel1 → Hôtel2 → ... → HôtelN → Aéroport
+     * Les distances inter-hôtels sont maintenant dans la base de données.
+     */
+    public double calculerDistanceTrajetReelle(TrajetVehiculeDTO trajet) throws SQLException {
+        List<ReservationAffecteeDTO> reservations = trajet.getListeReservations();
+        if (reservations == null || reservations.isEmpty()) {
+            return 0;
+        }
+
+        // Somme des distances depuis le point précédent (déjà calculées)
+        double distance = 0;
+        for (ReservationAffecteeDTO r : reservations) {
+            distance += r.getDistance();
+        }
+        
+        // Ajouter la distance du dernier hôtel vers l'aéroport
+        int dernierHotelId = reservations.get(reservations.size() - 1).getIdHotel();
+        distance += distanceService.getDistance(dernierHotelId, AEROPORT_ID);
+        
+        return distance;
     }
 
     /**
      * Calcule l'heure de retour prévue pour un véhicule.
-     * Basé sur : distance totale / vitesse moyenne + temps d'attente par hôtel
+     * Basé sur : distance réelle parcourue / vitesse moyenne
      */
     public LocalDateTime calculerHeureRetour(TrajetVehiculeDTO trajet) throws SQLException {
         if (trajet.getHeureDepart() == null) {
             return null;
         }
 
-        double distanceTotale = trajet.getDistanceTotale();
+        // Utiliser la distance réelle parcourue (pas la somme des distances aéroport->hôtel)
+        double distanceReelle = calculerDistanceTrajetReelle(trajet);
         int vitesseMoyenne = parametreService.getVitesseMoyenne();
-        int tempsAttenteParHotel = parametreService.getTempsAttenteHotel();
-        int nbHotels = trajet.getListeReservations().size();
 
-        // Temps de trajet en minutes
-        double tempsTrajetMinutes = (distanceTotale / vitesseMoyenne) * 60;
-        
-        // Temps total d'attente
-        int tempsAttenteTotal = nbHotels * tempsAttenteParHotel;
+        // Temps de trajet en minutes = (distance / vitesse) * 60
+        double tempsTrajetMinutes = (distanceReelle / vitesseMoyenne) * 60;
 
-        // Temps total en minutes
-        long tempsTotalMinutes = (long) tempsTrajetMinutes + tempsAttenteTotal;
-
-        return trajet.getHeureDepart().plusMinutes(tempsTotalMinutes);
+        return trajet.getHeureDepart().plusMinutes((long) tempsTrajetMinutes);
     }
 
     /**
@@ -323,23 +336,70 @@ public class AssignationService {
             }
         }
 
-        // 6. Calculer les distances totales et heures de retour
+        // 6. Trier les réservations par ordre alphabétique du nom d'hôtel dans chaque véhicule
+        //    puis calculer les distances et heures de passage à chaque hôtel
+        int vitesseMoyenne = parametreService.getVitesseMoyenne();
+        
+        for (TrajetVehiculeDTO trajet : etatsVehicules) {
+            if (!trajet.getListeReservations().isEmpty()) {
+                // Trier alphabétiquement par nom d'hôtel
+                List<ReservationAffecteeDTO> reservationsTrieesAlpha = trajet.getListeReservations().stream()
+                        .sorted((r1, r2) -> {
+                            String nom1 = r1.getNomHotel() != null ? r1.getNomHotel() : "";
+                            String nom2 = r2.getNomHotel() != null ? r2.getNomHotel() : "";
+                            return nom1.compareToIgnoreCase(nom2);
+                        })
+                        .collect(Collectors.toList());
+                
+                // Calculer les distances et heures de passage
+                LocalDateTime heureActuelle = trajet.getHeureDepart();
+                int lieuPrecedent = AEROPORT_ID;
+                
+                for (int i = 0; i < reservationsTrieesAlpha.size(); i++) {
+                    ReservationAffecteeDTO res = reservationsTrieesAlpha.get(i);
+                    res.setOrdreVisite(i + 1);
+                    
+                    // Distance depuis le point précédent (aéroport ou hôtel précédent)
+                    double distDepuisPrecedent = distanceService.getDistance(lieuPrecedent, res.getIdHotel());
+                    res.setDistance(distDepuisPrecedent);
+                    
+                    // Distance aéroport -> cet hôtel (pour affichage)
+                    double distDepuisAeroport = distanceService.getDistance(AEROPORT_ID, res.getIdHotel());
+                    res.setDistanceDepuisAeroport(distDepuisAeroport);
+                    
+                    // Calculer l'heure d'arrivée à cet hôtel (sans temps d'attente)
+                    if (heureActuelle != null && vitesseMoyenne > 0) {
+                        double tempsTrajetMinutes = (distDepuisPrecedent / vitesseMoyenne) * 60;
+                        heureActuelle = heureActuelle.plusMinutes((long) tempsTrajetMinutes);
+                        res.setHeurePassage(heureActuelle);
+                    }
+                    
+                    lieuPrecedent = res.getIdHotel();
+                }
+                
+                // Mettre à jour la liste triée
+                trajet.setListeReservations(reservationsTrieesAlpha);
+            }
+        }
+
+        // 7. Calculer les distances totales (réelles) et heures de retour
         double distanceTotaleJour = 0;
         for (TrajetVehiculeDTO trajet : etatsVehicules) {
             if (!trajet.getListeReservations().isEmpty()) {
-                double distanceTrajet = calculerDistanceTotaleVehicule(trajet);
+                // Distance réelle parcourue: aéroport -> hôtels -> aéroport
+                double distanceTrajet = calculerDistanceTrajetReelle(trajet);
                 trajet.setDistanceTotale(distanceTrajet);
                 trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
                 distanceTotaleJour += distanceTrajet;
             }
         }
 
-        // 7. Filtrer les trajets avec au moins une réservation
+        // 8. Filtrer les trajets avec au moins une réservation
         List<TrajetVehiculeDTO> trajetsActifs = etatsVehicules.stream()
                 .filter(t -> !t.getListeReservations().isEmpty())
                 .collect(Collectors.toList());
 
-        // 8. Construire le résultat
+        // 9. Construire le résultat
         planification.setTrajets(trajetsActifs);
         planification.setReservationsNonAffectees(nonAffectees);
         planification.setDistanceTotaleJour(distanceTotaleJour);

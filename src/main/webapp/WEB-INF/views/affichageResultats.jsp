@@ -342,6 +342,7 @@
                                 <th>Client</th>
                                 <th>Hôtel</th>
                                 <th>Passagers</th>
+                                <th>Distance Aéroport-Hôtel</th>
                                 <th>Distance depuis précédent</th>
                             </tr>
                         </thead>
@@ -352,11 +353,46 @@
                                 <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientName() != null ? res.getClientName() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                                 <td><i class="fas fa-hotel" style="color: #667eea; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
                                 <td><i class="fas fa-users" style="color: #28a745; margin-right: 5px;"></i><%= res.getNbPassager() %></td>
-                                <td><%= String.format("%.1f", res.getDistance()) %> km</td>
+                                <td><i class="fas fa-plane" style="color: #fd7e14; margin-right: 5px;"></i><%= String.format("%.1f", res.getDistanceDepuisAeroport()) %> km</td>
+                                <td><i class="fas fa-route" style="color: #17a2b8; margin-right: 5px;"></i><%= String.format("%.1f", res.getDistance()) %> km</td>
                             </tr>
                             <% } %>
                         </tbody>
                     </table>
+                    
+                    <!-- Timeline du trajet -->
+                    <div class="timeline-container" style="margin-top: 20px; padding: 15px; background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <!-- Départ -->
+                            <div style="text-align: center; min-width: 80px;">
+                                <div style="font-size: 0.75em; color: #666;">Départ</div>
+                                <div style="font-weight: bold; color: #28a745;"><%= trajet.getHeureDepart() != null ? trajet.getHeureDepart().format(timeFormatter) : "-" %></div>
+                                <i class="fas fa-plane-departure" style="color: #28a745; font-size: 1.2em;"></i>
+                            </div>
+                            
+                            <% for (ReservationAffecteeDTO res : trajet.getListeReservations()) { %>
+                            <!-- Flèche -->
+                            <div style="flex-grow: 1; height: 2px; background: linear-gradient(90deg, #28a745, #667eea); max-width: 50px;"></div>
+                            
+                            <!-- Hôtel -->
+                            <div style="text-align: center; min-width: 80px;">
+                                <div style="font-size: 0.75em; color: #666;"><%= res.getNomHotel() %></div>
+                                <div style="font-weight: bold; color: #667eea;"><%= res.getHeurePassage() != null ? res.getHeurePassage().format(timeFormatter) : "-" %></div>
+                                <i class="fas fa-hotel" style="color: #667eea; font-size: 1.2em;"></i>
+                            </div>
+                            <% } %>
+                            
+                            <!-- Flèche retour -->
+                            <div style="flex-grow: 1; height: 2px; background: linear-gradient(90deg, #667eea, #dc3545); max-width: 50px;"></div>
+                            
+                            <!-- Retour -->
+                            <div style="text-align: center; min-width: 80px;">
+                                <div style="font-size: 0.75em; color: #666;">Retour</div>
+                                <div style="font-weight: bold; color: #dc3545;"><%= trajet.getHeureRetourPrevue() != null ? trajet.getHeureRetourPrevue().format(timeFormatter) : "-" %></div>
+                                <i class="fas fa-plane-arrival" style="color: #dc3545; font-size: 1.2em;"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <% } %>
             <% } else { %>

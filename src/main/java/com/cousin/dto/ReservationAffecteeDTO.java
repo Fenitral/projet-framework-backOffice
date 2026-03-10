@@ -14,6 +14,8 @@ public class ReservationAffecteeDTO {
     private Integer clientId;
     private String clientName;
     private String clientEmail;
+    private LocalDateTime heurePassage; // Heure d'arrivée à cet hôtel
+    private double distanceDepuisAeroport; // Distance aéroport -> cet hôtel
 
     public ReservationAffecteeDTO() {
     }
@@ -106,5 +108,20 @@ public class ReservationAffecteeDTO {
     public void setClientEmail(String clientEmail) {
         this.clientEmail = clientEmail;
     }
+
+    public LocalDateTime getHeurePassage() {
+        return heurePassage;
+    }
+
+    public void setHeurePassage(LocalDateTime heurePassage) {
+        this.heurePassage = heurePassage;
+    }
+
+    public double getDistanceDepuisAeroport() {
+        return distanceDepuisAeroport;
+    }
+
+    public void setDistanceDepuisAeroport(double distanceDepuisAeroport) {
+        this.distanceDepuisAeroport = distanceDepuisAeroport;
+    }
 }
-    
