@@ -5,7 +5,7 @@
     request.setAttribute("currentPage", "dashboard");
 %>
 
-<%@ include file="../includes/layout-header.jsp" %>
+
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
     
@@ -29,6 +29,18 @@
             <p style="color: #6c757d; margin: 5px 0;">Gestion du parc automobile</p>
             <a href="<%= request.getContextPath() %>/vehicule/list" class="btn btn-primary">
                 <i class="fas fa-list"></i> Voir les Véhicules
+            </a>
+        </div>
+    </div>
+    
+    <!-- Card Planification -->
+    <div class="card">
+        <div class="card-body text-center">
+            <i class="fas fa-calendar-alt" style="font-size: 3em; color: #667eea; margin-bottom: 15px;"></i>
+            <h3 style="color: #667eea; margin: 0;">Planification</h3>
+            <p style="color: #6c757d; margin: 5px 0;">Assignation des véhicules</p>
+            <a href="<%= request.getContextPath() %>/planification" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <i class="fas fa-cogs"></i> Planifier
             </a>
         </div>
     </div>
@@ -112,6 +124,9 @@
         </div>
         <div class="card-body">
             <div style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="<%= request.getContextPath() %>/planification" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <i class="fas fa-calendar-alt"></i> Planification
+                </a>
                 <a href="<%= request.getContextPath() %>/reservation/create" class="btn btn-success">
                     <i class="fas fa-plus"></i> Nouvelle Réservation
                 </a>

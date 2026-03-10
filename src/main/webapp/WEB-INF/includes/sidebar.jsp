@@ -7,6 +7,7 @@
     <nav class="sidebar-nav">
         <ul>
             <li><a href="<%= request.getContextPath() %>/" class="nav-link"><i class="fas fa-home"></i> Accueil</a></li>
+            <li><a href="<%= request.getContextPath() %>/planification" class="nav-link"><i class="fas fa-calendar-alt"></i> Planification</a></li>
             <li><a href="<%= request.getContextPath() %>/vehicule/list" class="nav-link"><i class="fas fa-car"></i> Liste Véhicules</a></li>
             <li><a href="<%= request.getContextPath() %>/vehicule/form" class="nav-link"><i class="fas fa-plus-circle"></i> Ajouter Véhicule</a></li>
             <li><a href="<%= request.getContextPath() %>/reservation/form" class="nav-link"><i class="fas fa-calendar-plus"></i> Nouvelle Réservation</a></li>

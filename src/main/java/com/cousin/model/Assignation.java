@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class Assignation {
     private int assignationId;
+    private int reservationId;
     private int clientId;
     private int regroupementId;
     private int vehiculeId;
@@ -12,10 +13,19 @@ public class Assignation {
     public Assignation() {
     }
 
-    public Assignation(int clientId, int vehiculeId, LocalDateTime assignedDate) {
+    public Assignation(int reservationId, int clientId, int vehiculeId, LocalDateTime assignedDate) {
+        this.reservationId = reservationId;
         this.clientId = clientId;
         this.vehiculeId = vehiculeId;
         this.assignedDate = assignedDate;
+    }
+
+    public int getReservationId() {
+        return reservationId;
+    }
+
+    public void setReservationId(int reservationId) {
+        this.reservationId = reservationId;
     }
 
     // Getters et Setters

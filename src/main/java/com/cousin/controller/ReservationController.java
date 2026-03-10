@@ -16,8 +16,8 @@ import java.util.List;
 @Controller
 public class ReservationController {
     private final ReservationService reservationService = new ReservationService();
-
-    @GetMapping("/reservation/form")
+ 
+    @GetMapping("/")
     public ModelView showForm() throws SQLException {
         List<Hotel> hotels = reservationService.listHotels();
         ModelView mv = new ModelView("/WEB-INF/views/reservation.jsp");

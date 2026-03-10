@@ -32,20 +32,42 @@ public class DistanceRepository {
     }
 
     public Distance findByHotels(int idHotelFrom, int idHotelTo) throws SQLException {
-        String sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
-                     "FROM dev.distance WHERE idHotelFrom = ? AND idHotelTo = ?";
+        // Gérer le cas où l'aéroport est représenté par 0 dans le code mais NULL dans la DB
+        String sql;
+        boolean fromIsAirport = (idHotelFrom == 0);
+        boolean toIsAirport = (idHotelTo == 0);
+        
+        if (fromIsAirport && toIsAirport) {
+            return null; // Pas de distance aéroport -> aéroport
+        } else if (fromIsAirport) {
+            sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
+                  "FROM dev.distance WHERE idHotelFrom IS NULL AND idHotelTo = ?";
+        } else if (toIsAirport) {
+            sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
+                  "FROM dev.distance WHERE idHotelFrom = ? AND idHotelTo IS NULL";
+        } else {
+            sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
+                  "FROM dev.distance WHERE idHotelFrom = ? AND idHotelTo = ?";
+        }
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, idHotelFrom);
-            statement.setInt(2, idHotelTo);
+            
+            if (fromIsAirport) {
+                statement.setInt(1, idHotelTo);
+            } else if (toIsAirport) {
+                statement.setInt(1, idHotelFrom);
+            } else {
+                statement.setInt(1, idHotelFrom);
+                statement.setInt(2, idHotelTo);
+            }
 
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
                     Distance d = new Distance();
                     d.setDistanceId(rs.getInt("distance_id"));
-                    d.setIdHotelFrom(rs.getInt("idHotelFrom"));
-                    d.setIdHotelTo(rs.getInt("idHotelTo"));
+                    d.setIdHotelFrom(rs.getObject("idHotelFrom") != null ? rs.getInt("idHotelFrom") : 0);
+                    d.setIdHotelTo(rs.getObject("idHotelTo") != null ? rs.getInt("idHotelTo") : 0);
                     d.setValeur(rs.getInt("valeur"));
                     return d;
                 }
