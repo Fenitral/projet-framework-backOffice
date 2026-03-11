@@ -382,15 +382,20 @@ public class AssignationService {
             }
         }
 
-        // 7. Calculer les distances totales (réelles) et heures de retour
+        // 7. Calculer les distances et heures de retour
         double distanceTotaleJour = 0;
         for (TrajetVehiculeDTO trajet : etatsVehicules) {
             if (!trajet.getListeReservations().isEmpty()) {
-                // Distance réelle parcourue: aéroport -> hôtels -> aéroport
-                double distanceTrajet = calculerDistanceTrajetReelle(trajet);
-                trajet.setDistanceTotale(distanceTrajet);
+                // Distance parcourue: somme des distances depuis précédent (aéroport -> hôtel1 -> ... -> hôtelN)
+                double distanceParcourue = calculerDistanceTotaleVehicule(trajet);
+                trajet.setDistanceParcourue(distanceParcourue);
+                
+                // Distance totale: avec retour à l'aéroport (aéroport -> hôtels -> aéroport)
+                double distanceTotale = calculerDistanceTrajetReelle(trajet);
+                trajet.setDistanceTotale(distanceTotale);
+                
                 trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
-                distanceTotaleJour += distanceTrajet;
+                distanceTotaleJour += distanceTotale;
             }
         }
 

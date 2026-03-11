@@ -8,8 +8,10 @@ CREATE TABLE IF NOT EXISTS dev.Hotel(
    nom VARCHAR(50) NOT NULL,
    PRIMARY KEY(Id_Hotel)
 );
+alter table dev.hotel add column aeroport VARCHAR(50); 
 
 CREATE TABLE IF NOT EXISTS dev.reservation(
+
    Id_reservation SERIAL,
    DateHeureArrive TIMESTAMP,
    idClient VARCHAR(50),
@@ -18,9 +20,11 @@ CREATE TABLE IF NOT EXISTS dev.reservation(
    PRIMARY KEY(Id_reservation),
    FOREIGN KEY(Id_Hotel) REFERENCES dev.Hotel(Id_Hotel)
 );
+alter table dev.reservation add column client_id INT references dev.client;
 
 CREATE TABLE IF NOT EXISTS dev.Vehicule (
     Id_Vehicule SERIAL,
+   PRIMARY KEY(id)
     Reference VARCHAR(50) NOT NULL,
     nbPlace INT,
     TypeVehicule VARCHAR(50),
@@ -31,7 +35,6 @@ CREATE TABLE IF NOT EXISTS dev.token_expiration(
    id SERIAL,
    token VARCHAR(255) NOT NULL UNIQUE,
    expiration TIMESTAMP NOT NULL,
-   PRIMARY KEY(id)
 );
 
 -- sp3
@@ -42,8 +45,6 @@ CREATE TABLE dev.client (
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(15)
 );
-
-alter table dev.reservation add column client_id INT references dev.client;
 
 CREATE TABLE dev.regroupement (
     regroupement_id SERIAL PRIMARY KEY,
@@ -58,11 +59,12 @@ create TABLE dev.assignation (
     vehicule_id INT REFERENCES dev.Vehicule(Id_Vehicule),
     assigned_date TIMESTAMP NOT NULL
 );
+ALTER TABLE dev.assignation ADD COLUMN reservation_id INTEGER;
 
 
 create table dev.unite ( 
     unite_id SERIAL PRIMARY KEY, 
-    nom_unite VARCHAR(50) NOT NULL 
+    nom_unite VARCHAR(5unite0) NOT NULL 
 );
 
 create table dev.parametre ( 
@@ -79,5 +81,3 @@ CREATE TABLE dev.distance (
     idHotelTo INT REFERENCES dev.Hotel(Id_Hotel),
     valeur INT
 );
-
-alter table dev.hotel add column aeroport VARCHAR(50); 

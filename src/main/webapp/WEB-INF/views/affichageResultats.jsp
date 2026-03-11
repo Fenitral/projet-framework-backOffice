@@ -329,8 +329,12 @@
                                 <div class="label">Retour prévu</div>
                             </div>
                             <div class="trajet-stat">
+                                <div class="value"><%= String.format("%.1f", trajet.getDistanceParcourue()) %> km</div>
+                                <div class="label">Distance parcourue</div>
+                            </div>
+                            <div class="trajet-stat">
                                 <div class="value"><%= String.format("%.1f", trajet.getDistanceTotale()) %> km</div>
-                                <div class="label">Distance</div>
+                                <div class="label">Distance totale</div>
                             </div>
                         </div>
                     </div>
