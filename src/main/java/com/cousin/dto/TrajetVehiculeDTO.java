@@ -10,7 +10,8 @@ public class TrajetVehiculeDTO {
     private String typeVehicule;
     private int capacite;
     private List<ReservationAffecteeDTO> listeReservations;
-    private double distanceTotale;
+    private double distanceTotale;       // Distance totale avec retour aéroport
+    private double distanceParcourue;    // Distance parcourue sans retour (somme des distances depuis précédent)
     private LocalDateTime heureDepart;
     private LocalDateTime heureRetourPrevue;
     private int placesUtilisees;
@@ -18,6 +19,7 @@ public class TrajetVehiculeDTO {
     public TrajetVehiculeDTO() {
         this.listeReservations = new ArrayList<>();
         this.distanceTotale = 0;
+        this.distanceParcourue = 0;
         this.placesUtilisees = 0;
     }
 
@@ -68,6 +70,14 @@ public class TrajetVehiculeDTO {
 
     public void setDistanceTotale(double distanceTotale) {
         this.distanceTotale = distanceTotale;
+    }
+
+    public double getDistanceParcourue() {
+        return distanceParcourue;
+    }
+
+    public void setDistanceParcourue(double distanceParcourue) {
+        this.distanceParcourue = distanceParcourue;
     }
 
     public LocalDateTime getHeureDepart() {
