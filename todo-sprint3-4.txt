@@ -4,10 +4,9 @@ BackOffice : Gestion des assignations de véhicules
 
             -Créer les tables manquantes dans la base
 
-            -Table preparation
+            -Table parametre
              id
              vitesse_moyenne (km/h)
-             temps_attente (minutes)
 
             -Table distance  
              id
@@ -16,7 +15,7 @@ BackOffice : Gestion des assignations de véhicules
              distance_km
 
             -Modifier table hotel
-             ajouter champ is_aeroport (boolean)
+             ajouter champ is_aeroport 
 
             -Modifier table vehicule
              ajouter champ lieu_actuel
@@ -33,7 +32,7 @@ BackOffice : Gestion des assignations de véhicules
             -Créer TrajetVehiculeDTO :
                  -vehicule (ou vehiculeId, reference)
 
-		   -listeReservations (List<ReservationAffecteeDTO>) triée par ordre de visite
+		   -listeReservations (List<ReservationAffecteeDTO>) 
                  -distance_totale
                  -heure_depart 
                  -heure_retour_prevue
@@ -75,7 +74,6 @@ BackOffice : Gestion des assignations de véhicules
                      -Puis dernier hôtel → aéroport (distance dans distance avec lieu_depart = dernier hôtel, lieu_arrivee = aéroport)
 
               -Calculer heure de retour 
-                     -Basé sur distance totale + vitesse moyenne + temps d'attente par hôtel
 
   Frontend :Responsable - ETU003368 - Ange
 
