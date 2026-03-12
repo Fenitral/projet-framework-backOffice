@@ -1,8 +1,9 @@
-
+3245-3328-3368
 TRUNCATE TABLE staging.distance RESTART IDENTITY CASCADE;
 TRUNCATE TABLE staging.parametre RESTART IDENTITY CASCADE;
 TRUNCATE TABLE staging.unite RESTART IDENTITY CASCADE;
 TRUNCATE TABLE staging.assignation RESTART IDENTITY CASCADE;
+TRUNCATE TABLE dev.reservation RESTART IDENTITY CASCADE;
 TRUNCATE TABLE staging.regroupement RESTART IDENTITY CASCADE;
 TRUNCATE TABLE staging.client RESTART IDENTITY CASCADE;
 TRUNCATE TABLE staging.Vehicule RESTART IDENTITY CASCADE;
@@ -24,12 +25,30 @@ VALUES
     ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', NOW() + INTERVAL '48 hours');
 
 
-INSERT INTO staging.Vehicule (Reference, nbPlace, TypeVehicule) VALUES
-	('VH-001', 4, 'D'),
-	('VH-002', 5, 'E'),
-	('VH-003', 2, 'D'),
-	('VH-004', 7, 'E'),
-	('VH-005', 18, 'E');
+INSERT INTO dev.Vehicule (Reference, nbPlace, TypeVehicule) VALUES
+	('Vehicule1', 12, 'D'),
+	('Vehicule2', 5, 'E'),
+	('Vehicule3', 5, 'D'),
+	('Vehicule5', 12, 'E');
+
+INSERT INTO dev.client (name,email,phone) VALUES('Tina','tina@gmail.com','0342568678');
+INSERT INTO staging.client (name,email,phone) VALUES('Fenitra','fenitra@gmail.com','0342568678');
+INSERT INTO staging.client (name,email,phone) VALUES('Ange','ange@gmail.com','0342568678');
+INSERT INTO staging.client (name,email,phone) VALUES('A','a@gmail.com','0342568678');
+INSERT INTO staging.client (name,email,phone) VALUES('B','b@gmail.com','0342568678');
+INSERT INTO staging.client (name,email,phone) VALUES('C','c@gmail.com','0342568678');
+
+INSERT INTO dev.reservation (dateheurearrive, idclient, nbpassager, id_hotel, client_id)
+VALUES
+    ('2026-03-12 09:00:00', 'CLI-001', 7, 1, 1),
+    ('2026-03-12 09:00:00', 'CLI-002', 11, 1, 2),
+    ('2026-03-12 09:00:00', 'CLI-003', 3, 1, 7),
+    ('2026-03-12 09:00:00', 'CLI-004', 1, 1, 4),
+    ('2026-03-12 09:00:00', 'CLI-005', 2, 1, 5),
+    ('2026-03-12 09:00:00', 'CLI-006', 20, 1, 6);
+
+
+    insert into staging.reservation (client_id, hotel_id, date_reservation) values (1, 1, '2024-07-01');
 
 -- Insertion des unités
 INSERT INTO staging.unite (nom_unite) VALUES 
@@ -42,8 +61,8 @@ INSERT INTO staging.parametre (nom_param, valeur, unite_id) VALUES
     ('vitesse_moyenne', 50, 1),      -- 50 km/h
     ('temps_attente_hotel', 10, 2);  -- 10 minutes par hôtel
 
-INSERT INTO staging.distance (idhotelfrom, idhotelto, valeur) VALUES
-(NULL, 1, 12),   -- Aéroport -> Colbert (12 km)
+INSERT INTO dev.distance (idhotelfrom, idhotelto, valeur) VALUES
+(NULL, 1, 50); -- Aéroport -> Colbert (12 km)
 (NULL, 2, 8),    -- Aéroport -> Novotel (8 km)
 (NULL, 3, 15),   -- Aéroport -> Ibis (15 km)
 (NULL, 4, 20);   -- Aéroport -> Lokanga (20 km)
@@ -82,4 +101,6 @@ INSERT INTO staging.client (name,email,phone) VALUES('Meva','meva@gmail.com','03
 
 ----verification script
  \dt staging.assignation 
+
+ select * from staging.reservation;
  
