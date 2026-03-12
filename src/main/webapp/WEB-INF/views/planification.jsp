@@ -10,7 +10,7 @@
             font-family: 'Segoe UI', Arial, sans-serif; 
             margin: 0; 
             padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -97,6 +97,7 @@
     </style>
 </head>
 <body>
+    <%@ include file="../includes/sidebar.jsp" %>
     <div class="container">
         <div class="form-section">
             <h2><i class="fas fa-calendar-alt"></i>Planification des Assignations</h2>

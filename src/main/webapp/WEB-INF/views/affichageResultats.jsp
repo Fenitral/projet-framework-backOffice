@@ -17,6 +17,7 @@
             padding: 20px;
             background: #f5f7fa;
             min-height: 100vh;
+            margin-left: 20em; /* Laisser de l'espace pour la sidebar */
         }
         .container {
             max-width: 1200px;
@@ -228,6 +229,7 @@
     </style>
 </head>
 <body>
+    <%@ include file="../includes/sidebar.jsp" %>
 <%
     PlanificationDTO planification = (PlanificationDTO) request.getAttribute("planification");
     String datePlanification = (String) request.getAttribute("datePlanification");
