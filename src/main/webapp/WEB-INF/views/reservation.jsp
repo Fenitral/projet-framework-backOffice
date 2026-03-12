@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ page import="java.util.List" %>
 <%@ page import="com.cousin.model.Hotel" %>
+<%@ page import="com.cousin.model.Client" %>
 
 <!DOCTYPE html>
 <html>
@@ -28,8 +29,20 @@
             <label>Date et heure d'arrivee</label><br>
             <input type="datetime-local" name="dateHeureArrive" class="form-control" required><br><br>
 
-            <label>Id client</label><br>
-            <input type="text" name="idClient" class="form-control" required><br><br>
+            <label>Client</label><br>
+            <select name="idClient" class="form-control" required>
+                <option value="">-- Choisir un client --</option>
+                <%
+                    List<Client> clients = (List<Client>) request.getAttribute("clients");
+                    if (clients != null) {
+                        for (Client client : clients) {
+                %>
+                    <option value="<%= client.getClientId() %>"><%= client.getClientId() %></option>
+                <%
+                        }
+                    }
+                %>
+            </select><br><br>
 
             <label>Nombre de passagers</label><br>
             <input type="number" name="nbPassager" min="1" class="form-control" required><br><br>

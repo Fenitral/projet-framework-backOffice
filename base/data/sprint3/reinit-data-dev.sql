@@ -1,12 +1,3 @@
-delete from dev.distance cascade;
-delete from dev.parametre;  
-delete from dev.unite;
-delete from dev.assignation;
-delete from dev.regroupement;
-delete from dev.client;
-delete from dev.Vehicule;
-delete from dev.Hotel;
-
 
 TRUNCATE TABLE dev.distance RESTART IDENTITY CASCADE;
 TRUNCATE TABLE dev.parametre RESTART IDENTITY CASCADE;
@@ -54,8 +45,8 @@ INSERT INTO dev.distance (idhotelfrom, idhotelto, valeur) VALUES
 (NULL, 1, 12),   -- Aéroport -> Colbert (12 km)
 (NULL, 2, 8),    -- Aéroport -> Novotel (8 km)
 (NULL, 3, 15),   -- Aéroport -> Ibis (15 km)
-(NULL, 4, 20);   -- Aéroport -> Lokanga (20 km)
-(NULL, 5, 8);   -- Aéroport -> Radisson Blu (8 km)
+(NULL, 4, 20),   -- Aéroport -> Lokanga (20 km)
+(NULL, 5, 8),   -- Aéroport -> Radisson Blu (8 km)
 (NULL, 6, 8);   -- Aéroport -> Analamanga (8 km)
 
 INSERT INTO dev.distance (idHotelFrom, idHotelTo, valeur) VALUES (1, 2, 3);  -- Analamanga -> Betina
