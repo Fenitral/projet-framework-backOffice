@@ -68,7 +68,7 @@ public class AssignationService {
     }
 
     /**
-     * Trie les réservations selon les règles de planification :
+     * Trie les réservations selon les règles de planification (ancienne logique) :
      * 1. Par dateHeureArrive (les plus tôt en premier)
      * 2. Par distance aéroport-hôtel croissante
      * 3. En cas d'égalité de dateHeure ET distance → tri alphabétique par nom d'hôtel
@@ -113,6 +113,16 @@ public class AssignationService {
     }
 
     /**
+     * SPRINT 4: Trie les réservations par nombre de passagers décroissant.
+     * Les réservations avec le plus de passagers sont traitées en premier.
+     */
+    public List<Reservation> sortReservationsByNbPassagerDesc(List<Reservation> reservations) {
+        return reservations.stream()
+                .sorted((r1, r2) -> Integer.compare(r2.getNbPassager(), r1.getNbPassager()))
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Trouve les véhicules candidats pour une réservation.
      * Un véhicule est candidat s'il a assez de places disponibles.
      */
@@ -135,38 +145,65 @@ public class AssignationService {
     }
 
     /**
-     * Sélectionne le meilleur véhicule parmi les candidats.
+     * SPRINT 4: Sélectionne le meilleur véhicule selon la nouvelle logique d'assignation.
      * Règles de priorité :
-     * 1. Priorité aux véhicules Diesel
-     * 2. Parmi les Diesel (ou non-Diesel si aucun Diesel disponible), choisir celui avec la capacité minimale suffisante
-     * 3. Si égalité, choix aléatoire
+     * 1. Chercher d'abord parmi les véhicules DÉJÀ UTILISÉS s'il y en a un avec assez de place
+     * 2. Si aucun véhicule utilisé n'a assez de place, assigner un NOUVEAU véhicule
+     * 3. Parmi les candidats, choisir celui avec le minimum de places vides (après assignation)
+     * 4. Priorité Diesel si égalité
+     * 5. Si égalité, choix aléatoire
      */
     public TrajetVehiculeDTO selectBestVehicle(List<TrajetVehiculeDTO> candidats, int nbPassagers) {
         if (candidats == null || candidats.isEmpty()) {
             return null;
         }
 
-        // Étape 1 : Séparer les Diesel des autres
-        List<TrajetVehiculeDTO> diesels = candidats.stream()
-                .filter(v -> isDiesel(v.getTypeVehicule()))
+        // SPRINT 4: Séparer les véhicules déjà utilisés des véhicules vides
+        List<TrajetVehiculeDTO> vehiculesUtilises = candidats.stream()
+                .filter(v -> !v.getListeReservations().isEmpty())
+                .filter(v -> v.getPlacesDisponibles() >= nbPassagers)
                 .collect(Collectors.toList());
 
-        // Utiliser les Diesel s'il y en a, sinon utiliser tous les candidats
-        List<TrajetVehiculeDTO> vehiculesAConsiderer = diesels.isEmpty() ? candidats : diesels;
+        List<TrajetVehiculeDTO> vehiculesVides = candidats.stream()
+                .filter(v -> v.getListeReservations().isEmpty())
+                .filter(v -> v.getPlacesDisponibles() >= nbPassagers)
+                .collect(Collectors.toList());
 
-        // Étape 2 : Parmi ceux-là, trouver la capacité minimale suffisante
-        int capaciteMinimale = vehiculesAConsiderer.stream()
-                .mapToInt(TrajetVehiculeDTO::getPlacesDisponibles)
-                .filter(places -> places >= nbPassagers)
+        // Priorité aux véhicules déjà utilisés s'ils ont assez de place
+        List<TrajetVehiculeDTO> vehiculesAConsiderer;
+        if (!vehiculesUtilises.isEmpty()) {
+            vehiculesAConsiderer = vehiculesUtilises;
+        } else {
+            vehiculesAConsiderer = vehiculesVides;
+        }
+
+        if (vehiculesAConsiderer.isEmpty()) {
+            return null;
+        }
+
+        // Trouver le véhicule avec le minimum de places vides après assignation
+        // (c'est-à-dire celui qui sera le plus rempli)
+        int minPlacesVides = vehiculesAConsiderer.stream()
+                .mapToInt(v -> v.getPlacesDisponibles() - nbPassagers)
                 .min()
                 .orElse(Integer.MAX_VALUE);
 
-        // Filtrer les véhicules avec cette capacité minimale
+        // Filtrer les véhicules avec ce minimum de places vides
         List<TrajetVehiculeDTO> vehiculesOptimaux = vehiculesAConsiderer.stream()
-                .filter(v -> v.getPlacesDisponibles() == capaciteMinimale)
+                .filter(v -> (v.getPlacesDisponibles() - nbPassagers) == minPlacesVides)
                 .collect(Collectors.toList());
 
-        // Étape 3 : Choix aléatoire si plusieurs véhicules optimaux
+        // Si plusieurs candidats, priorité aux Diesel
+        if (vehiculesOptimaux.size() > 1) {
+            List<TrajetVehiculeDTO> diesels = vehiculesOptimaux.stream()
+                    .filter(v -> isDiesel(v.getTypeVehicule()))
+                    .collect(Collectors.toList());
+            if (!diesels.isEmpty()) {
+                vehiculesOptimaux = diesels;
+            }
+        }
+
+        // Choix aléatoire si plusieurs véhicules optimaux
         Random random = new Random();
         return vehiculesOptimaux.get(random.nextInt(vehiculesOptimaux.size()));
     }
@@ -296,8 +333,9 @@ public class AssignationService {
         // 2. Récupérer tous les véhicules
         List<Vehicule> vehicules = getAllVehicules();
 
-        // 3. Trier les réservations par distance croissante
-        List<Reservation> reservationsTriees = sortReservationsByDistance(reservations);
+        // 3. SPRINT 4: Trier les réservations par nombre de passagers décroissant
+        // Les plus grandes réservations sont traitées en premier
+        List<Reservation> reservationsTriees = sortReservationsByNbPassagerDesc(reservations);
 
         // 4. Initialiser les états des véhicules
         List<TrajetVehiculeDTO> etatsVehicules = initVehiculeStates(vehicules, heureDepart);
@@ -336,15 +374,27 @@ public class AssignationService {
             }
         }
 
-        // 6. Trier les réservations par ordre alphabétique du nom d'hôtel dans chaque véhicule
+        // 6. Trier les réservations par distance depuis l'aéroport (le plus proche en premier)
         //    puis calculer les distances et heures de passage à chaque hôtel
         int vitesseMoyenne = parametreService.getVitesseMoyenne();
         
         for (TrajetVehiculeDTO trajet : etatsVehicules) {
             if (!trajet.getListeReservations().isEmpty()) {
-                // Trier alphabétiquement par nom d'hôtel
-                List<ReservationAffecteeDTO> reservationsTrieesAlpha = trajet.getListeReservations().stream()
+                // D'abord, calculer la distance aéroport -> hôtel pour chaque réservation
+                for (ReservationAffecteeDTO res : trajet.getListeReservations()) {
+                    double distDepuisAeroport = distanceService.getDistance(AEROPORT_ID, res.getIdHotel());
+                    res.setDistanceDepuisAeroport(distDepuisAeroport);
+                }
+                
+                // Trier par distance depuis l'aéroport (le plus proche en premier)
+                // En cas d'égalité de distance, tri alphabétique par nom d'hôtel
+                List<ReservationAffecteeDTO> reservationsTrieesParDistance = trajet.getListeReservations().stream()
                         .sorted((r1, r2) -> {
+                            int compareDistance = Double.compare(r1.getDistanceDepuisAeroport(), r2.getDistanceDepuisAeroport());
+                            if (compareDistance != 0) {
+                                return compareDistance;
+                            }
+                            // Même distance -> tri alphabétique par nom d'hôtel
                             String nom1 = r1.getNomHotel() != null ? r1.getNomHotel() : "";
                             String nom2 = r2.getNomHotel() != null ? r2.getNomHotel() : "";
                             return nom1.compareToIgnoreCase(nom2);
@@ -355,17 +405,13 @@ public class AssignationService {
                 LocalDateTime heureActuelle = trajet.getHeureDepart();
                 int lieuPrecedent = AEROPORT_ID;
                 
-                for (int i = 0; i < reservationsTrieesAlpha.size(); i++) {
-                    ReservationAffecteeDTO res = reservationsTrieesAlpha.get(i);
+                for (int i = 0; i < reservationsTrieesParDistance.size(); i++) {
+                    ReservationAffecteeDTO res = reservationsTrieesParDistance.get(i);
                     res.setOrdreVisite(i + 1);
                     
                     // Distance depuis le point précédent (aéroport ou hôtel précédent)
                     double distDepuisPrecedent = distanceService.getDistance(lieuPrecedent, res.getIdHotel());
                     res.setDistance(distDepuisPrecedent);
-                    
-                    // Distance aéroport -> cet hôtel (pour affichage)
-                    double distDepuisAeroport = distanceService.getDistance(AEROPORT_ID, res.getIdHotel());
-                    res.setDistanceDepuisAeroport(distDepuisAeroport);
                     
                     // Calculer l'heure d'arrivée à cet hôtel (sans temps d'attente)
                     if (heureActuelle != null && vitesseMoyenne > 0) {
@@ -378,7 +424,7 @@ public class AssignationService {
                 }
                 
                 // Mettre à jour la liste triée
-                trajet.setListeReservations(reservationsTrieesAlpha);
+                trajet.setListeReservations(reservationsTrieesParDistance);
             }
         }
 

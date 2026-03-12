@@ -354,7 +354,7 @@
                             <% for (ReservationAffecteeDTO res : trajet.getListeReservations()) { %>
                             <tr>
                                 <td><%= res.getOrdreVisite() %></td>
-                                <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientName() != null ? res.getClientName() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
+                                <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientId() != null ? res.getClientId() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                                 <td><i class="fas fa-hotel" style="color: #667eea; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
                                 <td><i class="fas fa-users" style="color: #28a745; margin-right: 5px;"></i><%= res.getNbPassager() %></td>
                                 <td><i class="fas fa-plane" style="color: #fd7e14; margin-right: 5px;"></i><%= String.format("%.1f", res.getDistanceDepuisAeroport()) %> km</td>
@@ -426,7 +426,7 @@
                         <% for (ReservationAffecteeDTO res : planification.getReservationsNonAffectees()) { %>
                         <tr>
                             <td>#<%= res.getIdReservation() %></td>
-                            <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientName() != null ? res.getClientName() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
+                            <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientId() != null ? res.getClientId() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                             <td><i class="fas fa-hotel" style="color: #dc3545; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
                             <td><%= res.getNbPassager() %></td>
                             <td><span class="badge" style="background: #f8d7da; color: #721c24;">Capacité insuffisante</span></td>

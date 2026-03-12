@@ -3,6 +3,10 @@ create database if not exists reservation_voiture;
 
 CREATE SCHEMA IF NOT EXISTS dev;
 
+-- lister les schemas
+\dn
+
+
 CREATE TABLE IF NOT EXISTS dev.Hotel(
    Id_Hotel SERIAL,
    nom VARCHAR(50) NOT NULL,
