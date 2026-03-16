@@ -5,6 +5,8 @@ public class Vehicule {
     private String reference;
     private int nbPlace;
     private String typeVehicule;
+    private String statut;           // DISPONIBLE, ASSIGNE, MAINTENANCE
+    private String lieuActuel;       // Localisation actuelle du véhicule
 
     public Vehicule() {
     }
@@ -14,6 +16,7 @@ public class Vehicule {
         this.reference = reference;
         this.nbPlace = nbPlace;
         this.typeVehicule = typeVehicule;
+        this.statut = "DISPONIBLE"; // Par défaut
     }
 
     public int getIdVehicule() {
@@ -46,5 +49,21 @@ public class Vehicule {
 
     public void setTypeVehicule(String typeVehicule) {
         this.typeVehicule = typeVehicule;
+    }
+
+    public String getStatut() {
+        return statut;
+    }
+
+    public void setStatut(String statut) {
+        this.statut = statut;
+    }
+
+    public String getLieuActuel() {
+        return lieuActuel;
+    }
+
+    public void setLieuActuel(String lieuActuel) {
+        this.lieuActuel = lieuActuel;
     }
 }
