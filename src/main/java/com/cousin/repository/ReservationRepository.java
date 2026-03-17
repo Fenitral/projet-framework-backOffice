@@ -17,7 +17,7 @@ import java.util.List;
 public class ReservationRepository {
 
     public void insert(Reservation reservation) throws SQLException {
-        String sql = "INSERT INTO dev.reservation(DateHeureArrive, idClient, nbPassager, Id_Hotel, client_id) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO local.reservation(DateHeureArrive, idClient, nbPassager, Id_Hotel, client_id) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -45,9 +45,9 @@ public class ReservationRepository {
         String sql = "SELECT r.Id_reservation, r.DateHeureArrive, r.idClient, r.nbPassager, r.client_id, " +
                      "h.Id_Hotel, h.nom, " +
                      "c.client_id AS c_client_id, c.name AS c_name, c.email AS c_email, c.phone AS c_phone " +
-                     "FROM dev.reservation r " +
-                     "JOIN dev.Hotel h ON r.Id_Hotel = h.Id_Hotel " +
-                     "LEFT JOIN dev.client c ON r.client_id = c.client_id " +
+                     "FROM local.reservation r " +
+                     "JOIN local.Hotel h ON r.Id_Hotel = h.Id_Hotel " +
+                     "LEFT JOIN local.client c ON r.client_id = c.client_id " +
                      "ORDER BY r.Id_reservation";
         List<Reservation> reservations = new ArrayList<>();
 
@@ -94,9 +94,9 @@ public class ReservationRepository {
         String sql = "SELECT r.Id_reservation, r.DateHeureArrive, r.idClient, r.nbPassager, r.client_id, " +
                      "h.Id_Hotel, h.nom, " +
                      "c.client_id AS c_client_id, c.name AS c_name, c.email AS c_email, c.phone AS c_phone " +
-                     "FROM dev.reservation r " +
-                     "JOIN dev.Hotel h ON r.Id_Hotel = h.Id_Hotel " +
-                     "LEFT JOIN dev.client c ON r.client_id = c.client_id " +
+                     "FROM local.reservation r " +
+                     "JOIN local.Hotel h ON r.Id_Hotel = h.Id_Hotel " +
+                     "LEFT JOIN local.client c ON r.client_id = c.client_id " +
                      "WHERE DATE(r.DateHeureArrive) = ? " +
                      "ORDER BY r.DateHeureArrive";
         List<Reservation> reservations = new ArrayList<>();

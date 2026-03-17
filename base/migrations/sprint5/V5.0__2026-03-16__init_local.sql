@@ -1,4 +1,6 @@
 BEGIN;
+create database reservation_voiture1;
+\c reservation_voiture1
 
 CREATE SCHEMA IF NOT EXISTS local;
 
