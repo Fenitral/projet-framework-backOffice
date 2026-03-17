@@ -1,5 +1,6 @@
 package com.cousin.service;
 
+import com.cousin.dto.GroupementDTO;
 import com.cousin.dto.PlanificationDTO;
 import com.cousin.dto.ReservationAffecteeDTO;
 import com.cousin.dto.TrajetVehiculeDTO;
@@ -662,5 +663,156 @@ public class AssignationService {
      */
     public List<Assignation> getAssignationsByDate(LocalDate date) throws SQLException {
         return assignationRepository.findByDate(date);
+    }
+
+    /**
+     * SPRINT 5 : Planifie les réservations d'une journée en les regroupant
+     * par fenêtre de 30 minutes autour de leur heure d'arrivée.
+     *
+     * Algorithme :
+     * 1. Récupère toutes les réservations du jour
+     * 2. Les trie par heure d'arrivée croissante
+     * 3. Les regroupe en fenêtres de 30 minutes
+     * 4. Pour chaque groupe, l'heure de départ = MAX(heure_arrivée) du groupe
+     * 5. Assigne les véhicules selon les règles Sprint 4 (+ grande réservation en premier,
+     *    véhicule déjà utilisé prioritaire, minimum de places vides, Diesel en priorité)
+     * 6. Retourne la liste des groupements, chacun avec ses trajets véhicules
+     *
+     * @param date date du jour à planifier
+     * @return liste de GroupementDTO, un par fenêtre horaire
+     */
+    public List<GroupementDTO> planifierParGroupements(LocalDate date) throws SQLException {
+        List<GroupementDTO> groupements = new ArrayList<>();
+
+        // 1. Récupérer toutes les réservations du jour
+        List<Reservation> toutesReservations = getReservationsByDate(date);
+        if (toutesReservations.isEmpty()) {
+            return groupements;
+        }
+
+        // 2. Trier par heure d'arrivée croissante
+        List<Reservation> triees = trierReservationsParHeureArrivee(toutesReservations);
+
+        // 3. Grouper en fenêtres de 30 minutes
+        List<List<Reservation>> fenetres = regrouperReservationsParFenetre30Min(triees);
+
+        // 4. Récupérer tous les véhicules disponibles (une seule fois)
+        List<Vehicule> tousVehicules = getAllVehicules();
+        int vitesseMoyenne = parametreService.getVitesseMoyenne();
+
+        // 5. Construire un GroupementDTO par fenêtre
+        for (int numGroupe = 0; numGroupe < fenetres.size(); numGroupe++) {
+            List<Reservation> groupe = fenetres.get(numGroupe);
+            if (groupe.isEmpty()) {
+                continue;
+            }
+
+            // Heure de départ = MAX(heure arrivée) du groupe
+            LocalDateTime heureDepart = calculerHeureDepartGroupe(groupe);
+
+            // Initialiser les états véhicules pour CE groupe (repart de zéro)
+            List<TrajetVehiculeDTO> etatsVehicules = initVehiculeStates(tousVehicules, heureDepart);
+
+            // Trier les réservations du groupe par nbPassager DESC (règle Sprint 4)
+            List<Reservation> reservationsTriees = sortReservationsByNbPassagerDesc(groupe);
+
+            int totalPassagers = 0;
+
+            // Assigner les réservations aux véhicules
+            for (Reservation reservation : reservationsTriees) {
+                List<TrajetVehiculeDTO> candidats = findCandidates(etatsVehicules, reservation.getNbPassager());
+
+                if (!candidats.isEmpty()) {
+                    TrajetVehiculeDTO vehiculeChoisi = selectBestVehicle(candidats, reservation.getNbPassager());
+
+                    int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty()
+                            ? AEROPORT_ID
+                            : vehiculeChoisi.getListeReservations()
+                                    .get(vehiculeChoisi.getListeReservations().size() - 1)
+                                    .getIdHotel();
+
+                    double distance = distanceService.getDistance(dernierLieu, reservation.getHotel().getIdHotel());
+                    int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
+                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance);
+                    vehiculeChoisi.addReservation(affectee);
+                    totalPassagers += reservation.getNbPassager();
+                }
+                // Les réservations non affectables dans ce groupe sont ignorées
+                // (capacité insuffisante) — aucun véhicule assez grand
+            }
+
+            // Trier les réservations de chaque véhicule par distance depuis l'aéroport
+            // et recalculer les heures de passage
+            for (TrajetVehiculeDTO trajet : etatsVehicules) {
+                if (trajet.getListeReservations().isEmpty()) {
+                    continue;
+                }
+
+                // Calculer distance aéroport→hôtel pour chaque réservation
+                for (ReservationAffecteeDTO res : trajet.getListeReservations()) {
+                    double distDepuisAeroport = distanceService.getDistance(AEROPORT_ID, res.getIdHotel());
+                    res.setDistanceDepuisAeroport(distDepuisAeroport);
+                }
+
+                // Trier par distance aéroport croissante, puis alphabétique
+                List<ReservationAffecteeDTO> ordonnees = trajet.getListeReservations().stream()
+                        .sorted((r1, r2) -> {
+                            int cmp = Double.compare(r1.getDistanceDepuisAeroport(), r2.getDistanceDepuisAeroport());
+                            if (cmp != 0) return cmp;
+                            String n1 = r1.getNomHotel() != null ? r1.getNomHotel() : "";
+                            String n2 = r2.getNomHotel() != null ? r2.getNomHotel() : "";
+                            return n1.compareToIgnoreCase(n2);
+                        })
+                        .collect(Collectors.toList());
+
+                // Recalculer distances inter-stops et heures de passage
+                LocalDateTime heureActuelle = heureDepart;
+                int lieuPrecedent = AEROPORT_ID;
+
+                for (int i = 0; i < ordonnees.size(); i++) {
+                    ReservationAffecteeDTO res = ordonnees.get(i);
+                    res.setOrdreVisite(i + 1);
+
+                    double distDepuisPrecedent = distanceService.getDistance(lieuPrecedent, res.getIdHotel());
+                    res.setDistance(distDepuisPrecedent);
+
+                    if (heureActuelle != null && vitesseMoyenne > 0) {
+                        double tempsMin = (distDepuisPrecedent / vitesseMoyenne) * 60.0;
+                        heureActuelle = heureActuelle.plusMinutes((long) tempsMin);
+                        res.setHeurePassage(heureActuelle);
+                    }
+
+                    lieuPrecedent = res.getIdHotel();
+                }
+
+                trajet.setListeReservations(ordonnees);
+
+                // Calculer km parcouru et heure de retour
+                double distParcourue = calculerDistanceTotaleVehicule(trajet);
+                trajet.setDistanceParcourue(distParcourue);
+
+                double distTotale = calculerDistanceTrajetReelle(trajet);
+                trajet.setDistanceTotale(distTotale);
+
+                trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
+            }
+
+            // Ne garder que les véhicules actifs (avec au moins une réservation)
+            List<TrajetVehiculeDTO> trajetsActifs = etatsVehicules.stream()
+                    .filter(t -> !t.getListeReservations().isEmpty())
+                    .collect(Collectors.toList());
+
+            // Construire le GroupementDTO
+            GroupementDTO groupementDTO = new GroupementDTO();
+            groupementDTO.setNumeroGroupe(numGroupe + 1);
+            groupementDTO.setHeureDepart(heureDepart);
+            groupementDTO.setTrajets(trajetsActifs);
+            groupementDTO.setTotalReservations(groupe.size());
+            groupementDTO.setTotalPassagers(totalPassagers);
+
+            groupements.add(groupementDTO);
+        }
+
+        return groupements;
     }
 }

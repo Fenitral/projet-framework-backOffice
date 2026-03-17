@@ -78,3 +78,6 @@ INSERT INTO dev.client (name,email,phone) VALUES('Ange','ange@gmail.com','034256
 ----verification script
  \dt dev.assignation 
  
+
+INSERT INTO dev.Hotel (nom) VALUES
+('zahhotel');

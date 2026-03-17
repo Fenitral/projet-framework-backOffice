@@ -10,6 +10,7 @@
     boolean isVehiculeList = currentPath.startsWith("/vehicule/list");
     boolean isVehiculeForm = currentPath.startsWith("/vehicule/form");
     boolean isReservation = currentPath.startsWith("/reservation");
+    boolean isGroupement = currentPath.startsWith("/groupement");
 %>
 
 <style>
@@ -144,6 +145,7 @@
             <li><a href="<%= contextPath %>/vehicule/list" class="nav-link <%= isVehiculeList ? "active" : "" %>"><i class="fas fa-car"></i> Liste Véhicules</a></li>
             <li><a href="<%= contextPath %>/vehicule/form" class="nav-link <%= isVehiculeForm ? "active" : "" %>"><i class="fas fa-plus-circle"></i> Ajouter Véhicule</a></li>
             <li><a href="<%= contextPath %>/reservation/form" class="nav-link <%= isReservation ? "active" : "" %>"><i class="fas fa-calendar-plus"></i> Nouvelle Réservation</a></li>
+            <li><a href="<%= contextPath %>/groupement" class="nav-link <%= isGroupement ? "active" : "" %>"><i class="fas fa-car-side"></i> Groupement des voitures</a></li>
         </ul>
     </nav>
 </div>

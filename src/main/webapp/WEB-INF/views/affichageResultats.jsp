@@ -248,6 +248,28 @@
         distanceTotale = planification.getDistanceTotaleJour();
         totalPassagers = planification.getTotalPassagers();
         totalReservations = planification.getTotalReservations();
+
+        // Fallback d'affichage : si la distance agrégée est absente, recalculer depuis les trajets.
+        if (distanceTotale <= 0 && planification.getTrajets() != null) {
+            double distanceRecalculee = 0;
+            for (TrajetVehiculeDTO trajet : planification.getTrajets()) {
+                if (trajet == null) {
+                    continue;
+                }
+                double distanceTrajet = trajet.getDistanceTotale();
+                if (distanceTrajet <= 0 && trajet.getListeReservations() != null) {
+                    double distanceParcourue = 0;
+                    for (ReservationAffecteeDTO res : trajet.getListeReservations()) {
+                        if (res != null) {
+                            distanceParcourue += res.getDistance();
+                        }
+                    }
+                    distanceTrajet = distanceParcourue;
+                }
+                distanceRecalculee += distanceTrajet;
+            }
+            distanceTotale = distanceRecalculee;
+        }
     }
 %>
     <div class="container">
@@ -299,6 +321,20 @@
                     String typeVehicule = trajet.getTypeVehicule();
                     String badgeClass = "badge-essence";
                     String typeLabel = "Essence";
+                    double displayDistanceParcourue = trajet.getDistanceParcourue();
+                    if (displayDistanceParcourue <= 0 && trajet.getListeReservations() != null) {
+                        double sommeDistance = 0;
+                        for (ReservationAffecteeDTO res : trajet.getListeReservations()) {
+                            if (res != null) {
+                                sommeDistance += res.getDistance();
+                            }
+                        }
+                        displayDistanceParcourue = sommeDistance;
+                    }
+                    double displayDistanceTotale = trajet.getDistanceTotale();
+                    if (displayDistanceTotale <= 0) {
+                        displayDistanceTotale = displayDistanceParcourue;
+                    }
                     if ("D".equalsIgnoreCase(typeVehicule) || "DIESEL".equalsIgnoreCase(typeVehicule)) {
                         badgeClass = "badge-diesel";
                         typeLabel = "Diesel";
@@ -331,11 +367,11 @@
                                 <div class="label">Retour prévu</div>
                             </div>
                             <div class="trajet-stat">
-                                <div class="value"><%= String.format("%.1f", trajet.getDistanceParcourue()) %> km</div>
+                                <div class="value"><%= String.format("%.1f", displayDistanceParcourue) %> km</div>
                                 <div class="label">Distance parcourue</div>
                             </div>
                             <div class="trajet-stat">
-                                <div class="value"><%= String.format("%.1f", trajet.getDistanceTotale()) %> km</div>
+                                <div class="value"><%= String.format("%.1f", displayDistanceTotale) %> km</div>
                                 <div class="label">Distance totale</div>
                             </div>
                         </div>

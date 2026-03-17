@@ -78,3 +78,6 @@ INSERT INTO local.assignation_detaillee (trajet_id, reservation_id, ordre_visite
     (2, 3, 1, 4);
 
 COMMIT;
+
+
+update local.distance set idhotelfrom=null where distance_id=2;
