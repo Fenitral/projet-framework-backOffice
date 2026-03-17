@@ -75,13 +75,13 @@ CREATE TABLE IF NOT EXISTS local.distance (
 );
 
 -- Fenêtres de temps d'attente pour regrouper les clients
-CREATE TABLE IF NOT EXISTS local.temps_attente_window (
-    window_id SERIAL PRIMARY KEY,
-    departure_date DATE NOT NULL,
-    window_start TIME NOT NULL,
-    window_end TIME NOT NULL,
-    minutes_attente INT NOT NULL DEFAULT 30
-);
+-- CREATE TABLE IF NOT EXISTS local.temps_attente_window (
+--     window_id SERIAL PRIMARY KEY,
+--     departure_date DATE NOT NULL,
+--     window_start TIME NOT NULL,
+--     window_end TIME NOT NULL,
+--     minutes_attente INT NOT NULL DEFAULT 30
+-- );
 
 -- Planifications complètes (résultats d'assignation)
 CREATE TABLE IF NOT EXISTS local.planification (

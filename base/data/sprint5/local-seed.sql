@@ -56,10 +56,10 @@ INSERT INTO local.token_expiration (token, expiration) VALUES
     ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', NOW() + INTERVAL '48 hours');
 
 -- Fenêtres de temps d'attente (groupage de réservations par 30 min)
-INSERT INTO local.temps_attente_window (departure_date, window_start, window_end, minutes_attente) VALUES
-    ('2026-03-16', '09:00:00', '09:30:00', 30),
-    ('2026-03-16', '09:30:00', '10:00:00', 30),
-    ('2026-03-16', '10:00:00', '10:30:00', 30);
+-- INSERT INTO local.temps_attente_window (departure_date, window_start, window_end, minutes_attente) VALUES
+--     ('2026-03-16', '09:00:00', '09:30:00', 30),
+--     ('2026-03-16', '09:30:00', '10:00:00', 30),
+--     ('2026-03-16', '10:00:00', '10:30:00', 30);
 
 -- Planifications complètes (résultats de regroupement et assignation)
 INSERT INTO local.planification (departure_date, window_id, heure_depart, heure_retour_aeroport, description) VALUES
