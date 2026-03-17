@@ -12,12 +12,22 @@ import java.util.List;
 
 public class DistanceRepository {
 
+    private String resolveSchema(Connection connection) throws SQLException {
+        String schema = connection.getSchema();
+        if (schema == null || schema.isBlank()) {
+            return "public";
+        }
+        return schema;
+    }
+
     public List<Distance> findAll() throws SQLException {
-        String sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur FROM dev.distance ORDER BY distance_id";
         List<Distance> distances = new ArrayList<>();
 
         try (Connection connection = DbConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT distance_id, idHotelFrom, idHotelTo, valeur FROM "
+                             + resolveSchema(connection)
+                             + ".distance ORDER BY distance_id");
              ResultSet rs = statement.executeQuery()) {
             while (rs.next()) {
                 Distance d = new Distance();
@@ -36,40 +46,52 @@ public class DistanceRepository {
         String sql;
         boolean fromIsAirport = (idHotelFrom == 0);
         boolean toIsAirport = (idHotelTo == 0);
-        
-        if (fromIsAirport && toIsAirport) {
-            return null; // Pas de distance aéroport -> aéroport
-        } else if (fromIsAirport) {
-            sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
-                  "FROM dev.distance WHERE idHotelFrom IS NULL AND idHotelTo = ?";
-        } else if (toIsAirport) {
-            sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
-                  "FROM dev.distance WHERE idHotelFrom = ? AND idHotelTo IS NULL";
-        } else {
-            sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
-                  "FROM dev.distance WHERE idHotelFrom = ? AND idHotelTo = ?";
-        }
 
         try (Connection connection = DbConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            
-            if (fromIsAirport) {
-                statement.setInt(1, idHotelTo);
+             ) {
+            String schema = resolveSchema(connection);
+
+            if (fromIsAirport && toIsAirport) {
+                return null; // Pas de distance aéroport -> aéroport
+            } else if (fromIsAirport) {
+                // Accepte les 2 représentations de l'aéroport: NULL ou id de l'hôtel marqué is_aeroport.
+                sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
+                      "FROM " + schema + ".distance " +
+                      "WHERE (idHotelFrom IS NULL OR idHotelFrom = (" +
+                      "SELECT id_hotel FROM " + schema + ".hotel WHERE is_aeroport = TRUE LIMIT 1" +
+                      ")) AND idHotelTo = ?";
             } else if (toIsAirport) {
-                statement.setInt(1, idHotelFrom);
+                // Accepte les 2 représentations de l'aéroport: NULL ou id de l'hôtel marqué is_aeroport.
+                sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
+                      "FROM " + schema + ".distance " +
+                      "WHERE idHotelFrom = ? AND (idHotelTo IS NULL OR idHotelTo = (" +
+                      "SELECT id_hotel FROM " + schema + ".hotel WHERE is_aeroport = TRUE LIMIT 1" +
+                      "))";
             } else {
-                statement.setInt(1, idHotelFrom);
-                statement.setInt(2, idHotelTo);
+                sql = "SELECT distance_id, idHotelFrom, idHotelTo, valeur " +
+                      "FROM " + schema + ".distance WHERE idHotelFrom = ? AND idHotelTo = ?";
             }
 
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    Distance d = new Distance();
-                    d.setDistanceId(rs.getInt("distance_id"));
-                    d.setIdHotelFrom(rs.getObject("idHotelFrom") != null ? rs.getInt("idHotelFrom") : 0);
-                    d.setIdHotelTo(rs.getObject("idHotelTo") != null ? rs.getInt("idHotelTo") : 0);
-                    d.setValeur(rs.getInt("valeur"));
-                    return d;
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            
+                if (fromIsAirport) {
+                    statement.setInt(1, idHotelTo);
+                } else if (toIsAirport) {
+                    statement.setInt(1, idHotelFrom);
+                } else {
+                    statement.setInt(1, idHotelFrom);
+                    statement.setInt(2, idHotelTo);
+                }
+
+                try (ResultSet rs = statement.executeQuery()) {
+                    if (rs.next()) {
+                        Distance d = new Distance();
+                        d.setDistanceId(rs.getInt("distance_id"));
+                        d.setIdHotelFrom(rs.getObject("idHotelFrom") != null ? rs.getInt("idHotelFrom") : 0);
+                        d.setIdHotelTo(rs.getObject("idHotelTo") != null ? rs.getInt("idHotelTo") : 0);
+                        d.setValeur(rs.getInt("valeur"));
+                        return d;
+                    }
                 }
             }
         }
@@ -94,10 +116,9 @@ public class DistanceRepository {
     }
 
     public void insert(Distance distance) throws SQLException {
-        String sql = "INSERT INTO dev.distance(idHotelFrom, idHotelTo, valeur) VALUES (?, ?, ?)";
-
         try (Connection connection = DbConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO " + resolveSchema(connection) + ".distance(idHotelFrom, idHotelTo, valeur) VALUES (?, ?, ?)")) {
             statement.setInt(1, distance.getIdHotelFrom());
             statement.setInt(2, distance.getIdHotelTo());
             statement.setInt(3, distance.getValeur());

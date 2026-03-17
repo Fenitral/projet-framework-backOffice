@@ -1,5 +1,6 @@
 package com.cousin.service;
 
+import com.cousin.dto.GroupementDTO;
 import com.cousin.dto.PlanificationDTO;
 import com.cousin.dto.ReservationAffecteeDTO;
 import com.cousin.dto.TrajetVehiculeDTO;
@@ -13,6 +14,7 @@ import com.cousin.repository.VehiculeRepository;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -314,6 +316,169 @@ public class AssignationService {
     }
 
     /**
+     * SPRINT 5: Trie les réservations par heure d'arrivée (ascendant).
+     * Les réservations arrivant le plus tôt sont traitées en premier.
+     * 
+     * @param reservations liste non triée de réservations
+     * @return List<Reservation> réservations triées par dateHeureArrive croissant
+     */
+    public List<Reservation> trierReservationsParHeureArrivee(List<Reservation> reservations) {
+        if (reservations == null || reservations.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        return reservations.stream()
+                .sorted((r1, r2) -> {
+                    LocalDateTime dt1 = r1.getDateHeureArrive();
+                    LocalDateTime dt2 = r2.getDateHeureArrive();
+                    
+                    // Gérer les null (si une réservation n'a pas de date)
+                    if (dt1 == null && dt2 == null) {
+                        return 0;
+                    }
+                    if (dt1 == null) {
+                        return 1; // null va à la fin
+                    }
+                    if (dt2 == null) {
+                        return -1; // null va à la fin
+                    }
+                    
+                    return dt1.compareTo(dt2);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * SPRINT 5: Regroupe les réservations par fenêtre de 30 minutes.
+     * 
+     * Algorithmique :
+     * 1. Les réservations doivent être TRIÉES par dateHeureArrive (du plus tôt au plus tard)
+     * 2. Pour chaque réservation, chercher un groupe existant avec:
+     *    - fenetre_min <= dateHeureArrive <= fenetre_max
+     *    où fenetre = [première_arrivée, première_arrivée + 30 minutes]
+     * 3. Si trouvé -> ajouter à ce groupe
+     *    Si non trouvé -> créer un nouveau groupe
+     * 
+     * @param reservationsSorted liste des réservations TRIÉES par dateHeureArrive
+     * @return List<List<Reservation>> groupes de réservations, chacun dans sa fenêtre 30 min
+     */
+    public List<List<Reservation>> regrouperReservationsParFenetre30Min(List<Reservation> reservationsSorted) {
+        List<List<Reservation>> groupes = new ArrayList<>();
+        
+        if (reservationsSorted == null || reservationsSorted.isEmpty()) {
+            return groupes;
+        }
+
+        // Pour chaque réservation, trouver son groupe ou en créer un
+        for (Reservation reservation : reservationsSorted) {
+            LocalDateTime dateArriveeRes = reservation.getDateHeureArrive();
+            if (dateArriveeRes == null) {
+                continue; // Ignorer les réservations sans date d'arrivée
+            }
+
+            // Chercher si cette réservation appartient à une fenêtre existante
+            List<Reservation> groupeTrouve = null;
+            for (List<Reservation> groupe : groupes) {
+                if (!groupe.isEmpty()) {
+                    // Récupérer l'heure d'arrivée du PREMIER élément du groupe (référence de fenêtre)
+                    LocalDateTime premierArrivee = groupe.get(0).getDateHeureArrive();
+                    LocalDateTime finFenetre = premierArrivee.plusMinutes(30);
+
+                    // Vérifier si la réservation est dans la fenêtre [premierArrivee, premierArrivee + 30 min]
+                    if (!dateArriveeRes.isBefore(premierArrivee) && !dateArriveeRes.isAfter(finFenetre)) {
+                        groupeTrouve = groupe;
+                        break;
+                    }
+                }
+            }
+
+            // Ajouter la réservation au groupe trouvé ou en créer un nouveau
+            if (groupeTrouve != null) {
+                groupeTrouve.add(reservation);
+            } else {
+                List<Reservation> nouveauGroupe = new ArrayList<>();
+                nouveauGroupe.add(reservation);
+                groupes.add(nouveauGroupe);
+            }
+        }
+
+        return groupes;
+    }
+
+    /**
+     * SPRINT 5: Calcule l'heure de départ pour un groupe de réservations.
+     * 
+     * RÈGLE: heure_départ = MAX(heure_arrivée) du groupe
+     * - Les 30 minutes servent à créer la fenêtre de regroupement
+     * - L'heure de départ = la dernière heure d'arrivée des vols du groupe
+     * - Si résultat < 08:00 → forcer 08:00 (départ minimum légal)
+     * 
+     * @param reservations liste de réservations d'un même groupe
+     * @return LocalDateTime heure de départ calculée
+     */
+    public LocalDateTime calculerHeureDepartGroupe(List<Reservation> reservations) {
+        if (reservations == null || reservations.isEmpty()) {
+            return LocalDateTime.of(LocalDate.now(), LocalTime.of(8, 0)); // Default 08:00
+        }
+        
+        // Trouver l'heure d'arrivée MAX du groupe
+        LocalDateTime maxArrivee = reservations.stream()
+                .map(Reservation::getDateHeureArrive)
+                .filter(dt -> dt != null)
+                .max(LocalDateTime::compareTo)
+                .orElse(LocalDateTime.of(LocalDate.now(), LocalTime.of(8, 0)));
+        
+        // Appliquer minimum 08:00
+        LocalTime heureMinimum = LocalTime.of(8, 0);
+        if (maxArrivee.toLocalTime().isBefore(heureMinimum)) {
+            maxArrivee = maxArrivee.withHour(8).withMinute(0).withSecond(0);
+        }
+        
+        return maxArrivee;
+    }
+
+    /**
+     * SPRINT 5: Construit les lignes de résultats pour affichage écran.
+     * 
+     * Chaque ligne = 1 véhicule avec ses réservations assignées
+     * Format: {départ, véhicule, [réservations], km, heure_retour}
+     * 
+     * @param trajets liste des trajets véhicules planifiés
+     * @return List<TrajetVehiculeDTO> (pour JSON serialization)
+     */
+    public List<TrajetVehiculeDTO> buildPlanificationLignes(List<TrajetVehiculeDTO> trajets) {
+        if (trajets == null || trajets.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Les trajets sont déjà complètement remplis par planifier()
+        // Cette méthode assure juste que tous les champs sont présents
+        for (TrajetVehiculeDTO trajet : trajets) {
+            // Vérifier que tous les champs critiques sont présents
+            if (trajet.getHeureDepart() == null) {
+                trajet.setHeureDepart(LocalDateTime.of(LocalDate.now(), LocalTime.of(8, 0)));
+            }
+            if (trajet.getDistanceTotale() == 0) {
+                try {
+                    trajet.setDistanceTotale((int) calculerDistanceTrajetReelle(trajet));
+                } catch (SQLException e) {
+                    trajet.setDistanceTotale(0);
+                }
+            }
+            if (trajet.getHeureRetourPrevue() == null) {
+                try {
+                    trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
+                } catch (SQLException e) {
+                    // Fallback
+                    trajet.setHeureRetourPrevue(trajet.getHeureDepart().plusHours(1));
+                }
+            }
+        }
+        
+        return trajets;
+    }
+
+    /**
      * Effectue la planification complète pour une date donnée.
      * Exclut les réservations déjà planifiées (qui ont une assignation).
      */
@@ -498,5 +663,156 @@ public class AssignationService {
      */
     public List<Assignation> getAssignationsByDate(LocalDate date) throws SQLException {
         return assignationRepository.findByDate(date);
+    }
+
+    /**
+     * SPRINT 5 : Planifie les réservations d'une journée en les regroupant
+     * par fenêtre de 30 minutes autour de leur heure d'arrivée.
+     *
+     * Algorithme :
+     * 1. Récupère toutes les réservations du jour
+     * 2. Les trie par heure d'arrivée croissante
+     * 3. Les regroupe en fenêtres de 30 minutes
+     * 4. Pour chaque groupe, l'heure de départ = MAX(heure_arrivée) du groupe
+     * 5. Assigne les véhicules selon les règles Sprint 4 (+ grande réservation en premier,
+     *    véhicule déjà utilisé prioritaire, minimum de places vides, Diesel en priorité)
+     * 6. Retourne la liste des groupements, chacun avec ses trajets véhicules
+     *
+     * @param date date du jour à planifier
+     * @return liste de GroupementDTO, un par fenêtre horaire
+     */
+    public List<GroupementDTO> planifierParGroupements(LocalDate date) throws SQLException {
+        List<GroupementDTO> groupements = new ArrayList<>();
+
+        // 1. Récupérer toutes les réservations du jour
+        List<Reservation> toutesReservations = getReservationsByDate(date);
+        if (toutesReservations.isEmpty()) {
+            return groupements;
+        }
+
+        // 2. Trier par heure d'arrivée croissante
+        List<Reservation> triees = trierReservationsParHeureArrivee(toutesReservations);
+
+        // 3. Grouper en fenêtres de 30 minutes
+        List<List<Reservation>> fenetres = regrouperReservationsParFenetre30Min(triees);
+
+        // 4. Récupérer tous les véhicules disponibles (une seule fois)
+        List<Vehicule> tousVehicules = getAllVehicules();
+        int vitesseMoyenne = parametreService.getVitesseMoyenne();
+
+        // 5. Construire un GroupementDTO par fenêtre
+        for (int numGroupe = 0; numGroupe < fenetres.size(); numGroupe++) {
+            List<Reservation> groupe = fenetres.get(numGroupe);
+            if (groupe.isEmpty()) {
+                continue;
+            }
+
+            // Heure de départ = MAX(heure arrivée) du groupe
+            LocalDateTime heureDepart = calculerHeureDepartGroupe(groupe);
+
+            // Initialiser les états véhicules pour CE groupe (repart de zéro)
+            List<TrajetVehiculeDTO> etatsVehicules = initVehiculeStates(tousVehicules, heureDepart);
+
+            // Trier les réservations du groupe par nbPassager DESC (règle Sprint 4)
+            List<Reservation> reservationsTriees = sortReservationsByNbPassagerDesc(groupe);
+
+            int totalPassagers = 0;
+
+            // Assigner les réservations aux véhicules
+            for (Reservation reservation : reservationsTriees) {
+                List<TrajetVehiculeDTO> candidats = findCandidates(etatsVehicules, reservation.getNbPassager());
+
+                if (!candidats.isEmpty()) {
+                    TrajetVehiculeDTO vehiculeChoisi = selectBestVehicle(candidats, reservation.getNbPassager());
+
+                    int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty()
+                            ? AEROPORT_ID
+                            : vehiculeChoisi.getListeReservations()
+                                    .get(vehiculeChoisi.getListeReservations().size() - 1)
+                                    .getIdHotel();
+
+                    double distance = distanceService.getDistance(dernierLieu, reservation.getHotel().getIdHotel());
+                    int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
+                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance);
+                    vehiculeChoisi.addReservation(affectee);
+                    totalPassagers += reservation.getNbPassager();
+                }
+                // Les réservations non affectables dans ce groupe sont ignorées
+                // (capacité insuffisante) — aucun véhicule assez grand
+            }
+
+            // Trier les réservations de chaque véhicule par distance depuis l'aéroport
+            // et recalculer les heures de passage
+            for (TrajetVehiculeDTO trajet : etatsVehicules) {
+                if (trajet.getListeReservations().isEmpty()) {
+                    continue;
+                }
+
+                // Calculer distance aéroport→hôtel pour chaque réservation
+                for (ReservationAffecteeDTO res : trajet.getListeReservations()) {
+                    double distDepuisAeroport = distanceService.getDistance(AEROPORT_ID, res.getIdHotel());
+                    res.setDistanceDepuisAeroport(distDepuisAeroport);
+                }
+
+                // Trier par distance aéroport croissante, puis alphabétique
+                List<ReservationAffecteeDTO> ordonnees = trajet.getListeReservations().stream()
+                        .sorted((r1, r2) -> {
+                            int cmp = Double.compare(r1.getDistanceDepuisAeroport(), r2.getDistanceDepuisAeroport());
+                            if (cmp != 0) return cmp;
+                            String n1 = r1.getNomHotel() != null ? r1.getNomHotel() : "";
+                            String n2 = r2.getNomHotel() != null ? r2.getNomHotel() : "";
+                            return n1.compareToIgnoreCase(n2);
+                        })
+                        .collect(Collectors.toList());
+
+                // Recalculer distances inter-stops et heures de passage
+                LocalDateTime heureActuelle = heureDepart;
+                int lieuPrecedent = AEROPORT_ID;
+
+                for (int i = 0; i < ordonnees.size(); i++) {
+                    ReservationAffecteeDTO res = ordonnees.get(i);
+                    res.setOrdreVisite(i + 1);
+
+                    double distDepuisPrecedent = distanceService.getDistance(lieuPrecedent, res.getIdHotel());
+                    res.setDistance(distDepuisPrecedent);
+
+                    if (heureActuelle != null && vitesseMoyenne > 0) {
+                        double tempsMin = (distDepuisPrecedent / vitesseMoyenne) * 60.0;
+                        heureActuelle = heureActuelle.plusMinutes((long) tempsMin);
+                        res.setHeurePassage(heureActuelle);
+                    }
+
+                    lieuPrecedent = res.getIdHotel();
+                }
+
+                trajet.setListeReservations(ordonnees);
+
+                // Calculer km parcouru et heure de retour
+                double distParcourue = calculerDistanceTotaleVehicule(trajet);
+                trajet.setDistanceParcourue(distParcourue);
+
+                double distTotale = calculerDistanceTrajetReelle(trajet);
+                trajet.setDistanceTotale(distTotale);
+
+                trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
+            }
+
+            // Ne garder que les véhicules actifs (avec au moins une réservation)
+            List<TrajetVehiculeDTO> trajetsActifs = etatsVehicules.stream()
+                    .filter(t -> !t.getListeReservations().isEmpty())
+                    .collect(Collectors.toList());
+
+            // Construire le GroupementDTO
+            GroupementDTO groupementDTO = new GroupementDTO();
+            groupementDTO.setNumeroGroupe(numGroupe + 1);
+            groupementDTO.setHeureDepart(heureDepart);
+            groupementDTO.setTrajets(trajetsActifs);
+            groupementDTO.setTotalReservations(groupe.size());
+            groupementDTO.setTotalPassagers(totalPassagers);
+
+            groupements.add(groupementDTO);
+        }
+
+        return groupements;
     }
 }
