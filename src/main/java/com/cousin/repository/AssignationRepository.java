@@ -10,7 +10,7 @@ import java.util.List;
 public class AssignationRepository {
 
     public void insert(Assignation assignation) throws SQLException {
-        String sql = "INSERT INTO dev.assignation(reservation_id, client_id, regroupement_id, vehicule_id, assigned_date) " +
+        String sql = "INSERT INTO local.assignation(reservation_id, client_id, regroupement_id, vehicule_id, assigned_date) " +
                      "VALUES (?, ?, ?, ?, ?)";
 
         try (Connection connection = DbConnection.getConnection();
@@ -42,7 +42,7 @@ public class AssignationRepository {
      * Récupère les IDs des réservations déjà assignées.
      */
     public List<Integer> findAssignedReservationIds() throws SQLException {
-        String sql = "SELECT DISTINCT reservation_id FROM dev.assignation WHERE reservation_id IS NOT NULL";
+        String sql = "SELECT DISTINCT reservation_id FROM local.assignation WHERE reservation_id IS NOT NULL";
         List<Integer> ids = new ArrayList<>();
 
         try (Connection connection = DbConnection.getConnection();
@@ -57,7 +57,7 @@ public class AssignationRepository {
 
     public List<Assignation> findByDate(java.time.LocalDate date) throws SQLException {
         String sql = "SELECT assignation_id, client_id, regroupement_id, vehicule_id, assigned_date " +
-                     "FROM dev.assignation WHERE DATE(assigned_date) = ? ORDER BY assigned_date";
+                     "FROM local.assignation WHERE DATE(assigned_date) = ? ORDER BY assigned_date";
         List<Assignation> assignations = new ArrayList<>();
 
         try (Connection connection = DbConnection.getConnection();
@@ -83,7 +83,7 @@ public class AssignationRepository {
     }
 
     public void deleteByDate(java.time.LocalDate date) throws SQLException {
-        String sql = "DELETE FROM dev.assignation WHERE DATE(assigned_date) = ?";
+        String sql = "DELETE FROM local.assignation WHERE DATE(assigned_date) = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {

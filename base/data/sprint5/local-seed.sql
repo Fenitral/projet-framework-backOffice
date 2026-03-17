@@ -30,10 +30,10 @@ INSERT INTO local.unite (nom_unite) VALUES
     ('km');
 
 INSERT INTO local.parametre (nom_param, valeur, unite_id) VALUES
-    ('vitesse_moyenne', 50, 4);
+    ('vitesse_moyenne', 50, 1);
 
 INSERT INTO local.parametre (nom_param, valeur, unite_id) VALUES
-    ('temps_attente_groupement', 15, 5);
+    ('temps_attente_groupement', 15, 2);
 
 -- AEROPORT is represented by idhotelfrom = NULL to match current repository logic.
 INSERT INTO local.distance (idhotelfrom, idhotelto, valeur) VALUES
