@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS local.unite (
 
 CREATE TABLE IF NOT EXISTS local.parametre (
     parametre_id SERIAL PRIMARY KEY,
-    nom_param VARCHAR(50) NOT NULL,
-    valeur INT,
+        nom_param VARCHAR(50) NOT NULL UNIQUE,
+        valeur INT NOT NULL,
     unite_id INT REFERENCES local.unite(unite_id)
 );
 
@@ -74,20 +74,11 @@ CREATE TABLE IF NOT EXISTS local.distance (
     valeur INT
 );
 
--- Fenêtres de temps d'attente pour regrouper les clients
-CREATE TABLE IF NOT EXISTS local.temps_attente_window (
-    window_id SERIAL PRIMARY KEY,
-    departure_date DATE NOT NULL,
-    window_start TIME NOT NULL,
-    window_end TIME NOT NULL,
-    minutes_attente INT NOT NULL DEFAULT 30
-);
-
 -- Planifications complètes (résultats d'assignation)
 CREATE TABLE IF NOT EXISTS local.planification (
     planification_id SERIAL PRIMARY KEY,
     departure_date DATE NOT NULL,
-    window_id INT REFERENCES local.temps_attente_window(window_id),
+    parametre_id INT REFERENCES local.parametre(parametre_id),
     heure_depart TIMESTAMP NOT NULL,
     heure_retour_aeroport TIMESTAMP NOT NULL,
     description TEXT,

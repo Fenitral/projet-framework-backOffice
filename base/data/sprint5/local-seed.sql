@@ -31,7 +31,7 @@ INSERT INTO local.unite (nom_unite) VALUES
 
 INSERT INTO local.parametre (nom_param, valeur, unite_id) VALUES
     ('vitesse_moyenne', 50, 1),
-    ('temps_attente_hotel', 10, 2);
+    ('temps_attente_groupement', 30, 2);
 
 -- AEROPORT is represented by idhotelfrom = NULL to match current repository logic.
 INSERT INTO local.distance (idhotelfrom, idhotelto, valeur) VALUES
@@ -55,16 +55,22 @@ INSERT INTO local.token_expiration (token, expiration) VALUES
     ('550e8400-e29b-41d4-a716-446655440000', NOW() + INTERVAL '24 hours'),
     ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', NOW() + INTERVAL '48 hours');
 
--- Fenêtres de temps d'attente (groupage de réservations par 30 min)
-INSERT INTO local.temps_attente_window (departure_date, window_start, window_end, minutes_attente) VALUES
-    ('2026-03-16', '09:00:00', '09:30:00', 30),
-    ('2026-03-16', '09:30:00', '10:00:00', 30),
-    ('2026-03-16', '10:00:00', '10:30:00', 30);
-
 -- Planifications complètes (résultats de regroupement et assignation)
-INSERT INTO local.planification (departure_date, window_id, heure_depart, heure_retour_aeroport, description) VALUES
-    ('2026-03-16', 1, '2026-03-16 09:30:00', '2026-03-16 11:45:00', 'Groupe 1: 2 réservations, 1 véhicule'),
-    ('2026-03-16', 2, '2026-03-16 10:30:00', '2026-03-16 12:00:00', 'Groupe 2: 1 réservation, 1 véhicule');
+INSERT INTO local.planification (departure_date, parametre_id, heure_depart, heure_retour_aeroport, description) VALUES
+    (
+        '2026-03-16',
+        (SELECT parametre_id FROM local.parametre WHERE nom_param = 'temps_attente_groupement'),
+        '2026-03-16 09:30:00',
+        '2026-03-16 11:45:00',
+        'Groupe 1: 2 réservations, 1 véhicule'
+    ),
+    (
+        '2026-03-16',
+        (SELECT parametre_id FROM local.parametre WHERE nom_param = 'temps_attente_groupement'),
+        '2026-03-16 10:30:00',
+        '2026-03-16 12:00:00',
+        'Groupe 2: 1 réservation, 1 véhicule'
+    );
 
 -- Trajets véhicules associés aux planifications
 INSERT INTO local.trajet_vehicule (planification_id, vehicule_id, distance_totale, heure_depart_aeroport, heure_retour_aeroport, ordre_trajet) VALUES
