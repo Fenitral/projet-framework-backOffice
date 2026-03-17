@@ -1,4 +1,6 @@
 BEGIN;
+create database reservation_voiture1;
+\c reservation_voiture1
 
 CREATE SCHEMA IF NOT EXISTS local;
 
@@ -44,8 +46,8 @@ CREATE TABLE IF NOT EXISTS local.unite (
 
 CREATE TABLE IF NOT EXISTS local.parametre (
     parametre_id SERIAL PRIMARY KEY,
-    nom_param VARCHAR(50) NOT NULL,
-    valeur INT,
+        nom_param VARCHAR(50) NOT NULL UNIQUE,
+        valeur INT NOT NULL,
     unite_id INT REFERENCES local.unite(unite_id)
 );
 
@@ -87,7 +89,7 @@ CREATE TABLE IF NOT EXISTS local.distance (
 CREATE TABLE IF NOT EXISTS local.planification (
     planification_id SERIAL PRIMARY KEY,
     departure_date DATE NOT NULL,
-    window_id INT REFERENCES local.temps_attente_window(window_id),
+    parametre_id INT REFERENCES local.parametre(parametre_id),
     heure_depart TIMESTAMP NOT NULL,
     heure_retour_aeroport TIMESTAMP NOT NULL,
     description TEXT,

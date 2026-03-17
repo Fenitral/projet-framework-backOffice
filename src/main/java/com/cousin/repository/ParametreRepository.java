@@ -12,10 +12,12 @@ import java.util.List;
 
 public class ParametreRepository {
 
+    private static final String SCHEMA = "local";
+
     public List<Parametre> findAll() throws SQLException {
         String sql = "SELECT p.parametre_id, p.nom_param, p.valeur, p.unite_id, u.nom_unite " +
-                     "FROM dev.parametre p " +
-                     "LEFT JOIN dev.unite u ON p.unite_id = u.unite_id " +
+                     "FROM " + SCHEMA + ".parametre p " +
+                     "LEFT JOIN " + SCHEMA + ".unite u ON p.unite_id = u.unite_id " +
                      "ORDER BY p.parametre_id";
         List<Parametre> parametres = new ArrayList<>();
 
@@ -37,8 +39,8 @@ public class ParametreRepository {
 
     public Parametre findByNom(String nomParam) throws SQLException {
         String sql = "SELECT p.parametre_id, p.nom_param, p.valeur, p.unite_id, u.nom_unite " +
-                     "FROM dev.parametre p " +
-                     "LEFT JOIN dev.unite u ON p.unite_id = u.unite_id " +
+                     "FROM " + SCHEMA + ".parametre p " +
+                     "LEFT JOIN " + SCHEMA + ".unite u ON p.unite_id = u.unite_id " +
                      "WHERE p.nom_param = ?";
 
         try (Connection connection = DbConnection.getConnection();
@@ -61,7 +63,7 @@ public class ParametreRepository {
     }
 
     public void update(Parametre parametre) throws SQLException {
-        String sql = "UPDATE dev.parametre SET valeur = ?, unite_id = ? WHERE parametre_id = ?";
+        String sql = "UPDATE " + SCHEMA + ".parametre SET valeur = ?, unite_id = ? WHERE parametre_id = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -73,7 +75,7 @@ public class ParametreRepository {
     }
 
     public void insert(Parametre parametre) throws SQLException {
-        String sql = "INSERT INTO dev.parametre(nom_param, valeur, unite_id) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO " + SCHEMA + ".parametre(nom_param, valeur, unite_id) VALUES (?, ?, ?)";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {

@@ -22,7 +22,6 @@ public class ReservationController {
         List<Hotel> hotels = reservationService.listHotels();
         ModelView mv = new ModelView("/WEB-INF/views/reservation.jsp");
         mv.addAttribute("hotels", hotels);
-        mv.addAttribute("clients", reservationService.listClients());
         return mv;
     }
 
@@ -38,15 +37,6 @@ public class ReservationController {
         if (dateHeureArrive != null && !dateHeureArrive.isBlank()) {
             reservation.setDateHeureArrive(LocalDateTime.parse(dateHeureArrive));
         }
-        
-        // Convertir l'idClient en clientId (Integer) pour la relation avec la table client
-        if (idClient != null && !idClient.isBlank()) {
-            try {
-                reservation.setClientId(Integer.parseInt(idClient));
-            } catch (NumberFormatException e) {
-                // Si ce n'est pas un nombre, ignorer
-            }
-        }
 
         Hotel hotel = new Hotel();
         hotel.setIdHotel(hotelId);
@@ -56,7 +46,6 @@ public class ReservationController {
 
         ModelView mv = new ModelView("/WEB-INF/views/reservation.jsp");
         mv.addAttribute("hotels", reservationService.listHotels());
-        mv.addAttribute("clients", reservationService.listClients());
         mv.addAttribute("message", "Reservation enregistree");
         return mv;
     }

@@ -67,7 +67,7 @@
  *    - Chaque véhicule peut avoir des trajets différents (hôtels visités)
  *    - Distance totale = aéroport → 1er hôtel → ... → dernier hôtel → aéroport
  *    - Respect de l'ordre d'insertion (tri par distance aéroport-hôtel)
- *    - Heure retour = heure_départ + (distance_totale / vitesse_moyenne) + temps_attentes_hôtels
+ *    - Heure retour = heure_départ + (distance_totale / vitesse_moyenne)
  * 
  *    MÉTHODES:
  *    • calculerDistanceTotaleVehicule(TrajetVehiculeDTO) → INT (km)

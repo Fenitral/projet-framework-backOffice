@@ -11,7 +11,7 @@ import java.util.List;
 
 public class VehiculeRepository {
     public void insert(Vehicule vehicule) throws SQLException {
-        String sql = "INSERT INTO dev.Vehicule(Reference, nbPlace, TypeVehicule) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO local.Vehicule(Reference, nbPlace, TypeVehicule) VALUES (?, ?, ?)";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -23,7 +23,7 @@ public class VehiculeRepository {
     }
 
     public void update(Vehicule vehicule) throws SQLException {
-        String sql = "UPDATE dev.Vehicule SET Reference = ?, nbPlace = ?, TypeVehicule = ? WHERE Id_Vehicule = ?";
+        String sql = "UPDATE local.Vehicule SET Reference = ?, nbPlace = ?, TypeVehicule = ? WHERE Id_Vehicule = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -36,7 +36,7 @@ public class VehiculeRepository {
     }
 
     public void deleteById(int idVehicule) throws SQLException {
-        String sql = "DELETE FROM dev.Vehicule WHERE Id_Vehicule = ?";
+        String sql = "DELETE FROM local.Vehicule WHERE Id_Vehicule = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -46,7 +46,7 @@ public class VehiculeRepository {
     }
 
     public Vehicule findById(int idVehicule) throws SQLException {
-        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule FROM dev.Vehicule WHERE Id_Vehicule = ?";
+        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule FROM local.Vehicule WHERE Id_Vehicule = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -67,7 +67,7 @@ public class VehiculeRepository {
     }
 
     public List<Vehicule> findAll() throws SQLException {
-        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule FROM dev.Vehicule ORDER BY Id_Vehicule";
+        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule FROM local.Vehicule ORDER BY Id_Vehicule";
         List<Vehicule> vehicules = new ArrayList<>();
 
         try (Connection connection = DbConnection.getConnection();

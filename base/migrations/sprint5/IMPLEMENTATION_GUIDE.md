@@ -230,11 +230,9 @@ void calculerDistanceTotaleVehicule_deuxHotels() {
  * Formule:
  *   heure_retour = heure_depart 
  *                + (distance_totale / vitesse_moyenne) en minutes
- *                + (nb_hotels * temps_attente_par_hotel) en minutes
  * 
  * Données depuis local.parametre:
  *   - vitesse_moyenne (ex: 50 km/h)
- *   - temps_attente_hotel (ex: 10 minutes)
  * 
  * @param trajet avec heure_depart et distance_totale déjà calculées
  * @return LocalDateTime heure retour
@@ -242,14 +240,6 @@ void calculerDistanceTotaleVehicule_deuxHotels() {
 public LocalDateTime calculerHeureRetour(TrajetVehiculeDTO trajet) {
     // Récupérer paramètres de BD
     int vitesseMoyenne = parametreRepository.getValeur("vitesse_moyenne"); // 50 km/h
-    int tempsAttenteHotel = parametreRepository.getValeur("temps_attente_hotel"); // 10 min
-    
-    // Nombre d'hôtels uniques dans le trajet
-    int nbHotels = trajet.getReservations().stream()
-        .map(r -> r.getHotel().getIdHotel())
-        .distinct()
-        .collect(Collectors.toSet())
-        .size();
     
     // Temps route en minutes: (distance / vitesse) * 60
     long tempsRoute = (trajet.getDistance_totale() * 60) / vitesseMoyenne;

@@ -58,8 +58,7 @@ INSERT INTO staging.unite (nom_unite) VALUES
 
 -- Insertion des paramètres
 INSERT INTO staging.parametre (nom_param, valeur, unite_id) VALUES 
-    ('vitesse_moyenne', 50, 1),      -- 50 km/h
-    ('temps_attente_hotel', 10, 2);  -- 10 minutes par hôtel
+    ('vitesse_moyenne', 50, 1);      -- 50 km/h
 
 INSERT INTO dev.distance (idhotelfrom, idhotelto, valeur) VALUES
 (NULL, 1, 50); -- Aéroport -> Colbert (12 km)

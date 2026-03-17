@@ -9,9 +9,7 @@ import java.util.List;
 public class ParametreService {
     
     private static final String VITESSE_MOYENNE = "vitesse_moyenne";
-    private static final String TEMPS_ATTENTE_HOTEL = "temps_attente_hotel";
-    private static final int VITESSE_DEFAUT = 50; // km/h par défaut
-    private static final int TEMPS_ATTENTE_DEFAUT = 10; // minutes par défaut
+    private static final String TEMPS_ATTENTE_GROUPEMENT = "temps_attente_groupement";
 
     private final ParametreRepository parametreRepository;
 
@@ -27,22 +25,22 @@ public class ParametreService {
      * Récupère la vitesse moyenne en km/h.
      */
     public int getVitesseMoyenne() throws SQLException {
-        Parametre p = parametreRepository.findByNom(VITESSE_MOYENNE);
-        if (p != null) {
-            return p.getValeur();
-        }
-        return VITESSE_DEFAUT;
+        return getValeurObligatoire(VITESSE_MOYENNE);
     }
 
     /**
-     * Récupère le temps d'attente par hôtel en minutes.
+     * Récupère le temps d'attente de groupement en minutes.
      */
-    public int getTempsAttenteHotel() throws SQLException {
-        Parametre p = parametreRepository.findByNom(TEMPS_ATTENTE_HOTEL);
-        if (p != null) {
-            return p.getValeur();
+    public int getTempsAttenteGroupement() throws SQLException {
+        return getValeurObligatoire(TEMPS_ATTENTE_GROUPEMENT);
+    }
+
+    private int getValeurObligatoire(String nomParametre) throws SQLException {
+        Parametre parametre = parametreRepository.findByNom(nomParametre);
+        if (parametre == null) {
+            throw new SQLException("Parametre manquant en base: " + nomParametre);
         }
-        return TEMPS_ATTENTE_DEFAUT;
+        return parametre.getValeur();
     }
 
     /**

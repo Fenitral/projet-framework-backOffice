@@ -61,23 +61,22 @@ PLANIFICATION (OUTPUT)
 ──────────────────────────────────────────────────────────────
 
 ┌────────────────────────────┐
-│local.temps_attente_window  │
+│ local.parametre            │
 ├────────────────────────────┤
-│ window_id (PK)             │
-│ departure_date             │
-│ window_start (TIME)        │  ex: 09:00:00 - 09:30:00
-│ window_end (TIME)          │      30 minutes d'attente
-│ minutes_attente = 30       │
+│ parametre_id (PK)          │
+│ nom_param                  │  ex: temps_attente_groupement
+│ valeur                     │      30 minutes
+│ unite_id (FK)              │
 └────────┬────────────────────┘
          │
-         │ window_id
+         │ parametre_id
          ▼
 ┌────────────────────────────┐
 │ local.planification        │
 ├────────────────────────────┤
 │ planification_id (PK)      │
 │ departure_date             │
-│ window_id (FK)             │
+│ parametre_id (FK)          │
 │ heure_depart (TIMESTAMP)   │  ← Max arrivée vol + 30 min
 │ heure_retour_aeroport      │  ← Après parcours complet
 │ description                │
@@ -169,7 +168,7 @@ FLUX LOGIQUE DE PLANIFICATION
 
 | Table | Rôle |
 |-------|------|
-| **temps_attente_window** | Fenêtres de 30 min pour regrouper les clients |
+| **parametre** | Paramètres globaux de calcul, dont le temps d'attente de groupement |
 | **planification** | Groupe final avec heure départ/retour |
 | **trajet_vehicule** | Véhicule assigné + distances/horaires du trajet |
 | **assignation_detaillee** | Ordre de visite hôtels par réservation |
