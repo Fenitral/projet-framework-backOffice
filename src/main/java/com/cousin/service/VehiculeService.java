@@ -190,7 +190,7 @@ public class VehiculeService {
         List<Vehicule> eligible = new java.util.ArrayList<>();
         
         for (Vehicule v : candidats) {
-            if (v.getNbplace() == null || v.getNbplace() < nbPassagers) {
+            if (v.getNbPlace() < nbPassagers) {
                 continue;
             }
             

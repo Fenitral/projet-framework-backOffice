@@ -140,7 +140,7 @@ public class ReservationWindowGrouper {
         // Fenêtre 1: 8h00-8h30
         Window w1 = new Window(dateService, LocalDateTime.of(2026, 3, 17, 8, 0), 30);
         Reservation r1 = new Reservation();
-        r1.setId(1);
+        r1.setIdReservation(1);
         r1.setNbPassager(5);
         r1.setDateHeureArrive(LocalDateTime.of(2026, 3, 17, 8, 0));
         w1.addReservation(r1);
@@ -149,7 +149,7 @@ public class ReservationWindowGrouper {
         // Fenêtre 2: 8h30-9h00
         Window w2 = new Window(dateService, LocalDateTime.of(2026, 3, 17, 8, 30), 30);
         Reservation r2 = new Reservation();
-        r2.setId(2);
+        r2.setIdReservation(2);
         r2.setNbPassager(3);
         r2.setDateHeureArrive(LocalDateTime.of(2026, 3, 17, 8, 30));
         w2.addReservation(r2);
@@ -158,7 +158,7 @@ public class ReservationWindowGrouper {
         // Fenêtre 3: 9h10-9h40
         Window w3 = new Window(dateService, LocalDateTime.of(2026, 3, 17, 9, 10), 30);
         Reservation r3 = new Reservation();
-        r3.setId(3);
+        r3.setIdReservation(3);
         r3.setNbPassager(4);
         r3.setDateHeureArrive(LocalDateTime.of(2026, 3, 17, 9, 10));
         w3.addReservation(r3);
@@ -170,7 +170,7 @@ public class ReservationWindowGrouper {
             System.out.printf("  Fenêtre %d: %02d:%02d-%02d:%02d (%d passagers)\n",
                 i + 1, w.heureDebut.getHour(), w.heureDebut.getMinute(),
                 w.heureFin.getHour(), w.heureFin.getMinute(),
-                w.getTotalPassagers());
+                w.getTotalPassengers());
         }
 
         // === ÉTAPE 2: Simulation d'assignation ===
