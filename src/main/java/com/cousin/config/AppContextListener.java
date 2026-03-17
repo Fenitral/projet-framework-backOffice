@@ -1,9 +1,9 @@
 package com.cousin.config;
 
 import com.cousin.util.DbConnection;
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletContextEvent;
-import jakarta.servlet.ServletContextListener;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 
 public class AppContextListener implements ServletContextListener {
     @Override

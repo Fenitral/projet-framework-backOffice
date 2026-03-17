@@ -10,6 +10,7 @@ public class Reservation {
     private Hotel hotel;
     private Integer clientId;
     private Client client;
+    private String statut; // PENDING, ASSIGNED, CANCELLED
 
     public Reservation() {
     }
@@ -76,5 +77,24 @@ public class Reservation {
 
     public void setClient(Client client) {
         this.client = client;
+    }
+
+    public String getStatut() {
+        return statut;
+    }
+
+    public void setStatut(String statut) {
+        this.statut = statut;
+    }
+
+    @Override
+    public String toString() {
+        return "Reservation{" +
+                "idReservation=" + idReservation +
+                ", dateHeureArrive=" + dateHeureArrive +
+                ", idClient='" + idClient + '\'' +
+                ", nbPassager=" + nbPassager +
+                ", statut='" + statut + '\'' +
+                '}';
     }
 }
