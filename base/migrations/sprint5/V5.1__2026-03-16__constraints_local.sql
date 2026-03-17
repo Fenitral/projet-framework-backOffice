@@ -70,13 +70,16 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conname = 'chk_local_temps_attente_window'
+        WHERE conname = 'chk_local_parametre_valeur_positive'
     ) THEN
-        ALTER TABLE local.temps_attente_window
-            ADD CONSTRAINT chk_local_temps_attente_window
-            CHECK (window_start < window_end AND minutes_attente > 0);
+        ALTER TABLE local.parametre
+            ADD CONSTRAINT chk_local_parametre_valeur_positive
+            CHECK (valeur > 0);
     END IF;
 END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_local_parametre_nom
+    ON local.parametre(nom_param);
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_local_distance_route
     ON local.distance (COALESCE(idhotelfrom, 0), COALESCE(idhotelto, 0));

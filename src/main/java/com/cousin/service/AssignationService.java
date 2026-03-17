@@ -69,12 +69,7 @@ public class AssignationService {
         return vehiculeRepository.findAll();
     }
 
-    /**
-     * Trie les réservations selon les règles de planification (ancienne logique) :
-     * 1. Par dateHeureArrive (les plus tôt en premier)
-     * 2. Par distance aéroport-hôtel croissante
-     * 3. En cas d'égalité de dateHeure ET distance → tri alphabétique par nom d'hôtel
-     */
+
     public List<Reservation> sortReservationsByDistance(List<Reservation> reservations) throws SQLException {
         // Créer une map des distances aéroport -> hôtel
         Map<Integer, Integer> distanceCache = new HashMap<>();
@@ -114,20 +109,14 @@ public class AssignationService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * SPRINT 4: Trie les réservations par nombre de passagers décroissant.
-     * Les réservations avec le plus de passagers sont traitées en premier.
-     */
+
     public List<Reservation> sortReservationsByNbPassagerDesc(List<Reservation> reservations) {
         return reservations.stream()
                 .sorted((r1, r2) -> Integer.compare(r2.getNbPassager(), r1.getNbPassager()))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Trouve les véhicules candidats pour une réservation.
-     * Un véhicule est candidat s'il a assez de places disponibles.
-     */
+
     public List<TrajetVehiculeDTO> findCandidates(List<TrajetVehiculeDTO> etatsVehicules, int nbPassagers) {
         return etatsVehicules.stream()
                 .filter(v -> v.getPlacesDisponibles() >= nbPassagers)
@@ -146,15 +135,7 @@ public class AssignationService {
         return type.equals("D") || type.equals("DIESEL");
     }
 
-    /**
-     * SPRINT 4: Sélectionne le meilleur véhicule selon la nouvelle logique d'assignation.
-     * Règles de priorité :
-     * 1. Chercher d'abord parmi les véhicules DÉJÀ UTILISÉS s'il y en a un avec assez de place
-     * 2. Si aucun véhicule utilisé n'a assez de place, assigner un NOUVEAU véhicule
-     * 3. Parmi les candidats, choisir celui avec le minimum de places vides (après assignation)
-     * 4. Priorité Diesel si égalité
-     * 5. Si égalité, choix aléatoire
-     */
+
     public TrajetVehiculeDTO selectBestVehicle(List<TrajetVehiculeDTO> candidats, int nbPassagers) {
         if (candidats == null || candidats.isEmpty()) {
             return null;
@@ -253,6 +234,10 @@ public class AssignationService {
         return etats;
     }
 
+    private int getTempsAttenteGroupementMinutes() throws SQLException {
+        return parametreService.getTempsAttenteGroupement();
+    }
+
     /**
      * Calcule la distance totale parcourue par un véhicule.
      * Somme des distances aéroport -> chaque hôtel
@@ -349,21 +334,22 @@ public class AssignationService {
     }
 
     /**
-     * SPRINT 5: Regroupe les réservations par fenêtre de 30 minutes.
+     * SPRINT 5: Regroupe les réservations selon le temps d'attente configuré.
      * 
      * Algorithmique :
      * 1. Les réservations doivent être TRIÉES par dateHeureArrive (du plus tôt au plus tard)
      * 2. Pour chaque réservation, chercher un groupe existant avec:
      *    - fenetre_min <= dateHeureArrive <= fenetre_max
-     *    où fenetre = [première_arrivée, première_arrivée + 30 minutes]
+     *    où fenetre = [première_arrivée, première_arrivée + temps_attente_groupement]
      * 3. Si trouvé -> ajouter à ce groupe
      *    Si non trouvé -> créer un nouveau groupe
      * 
      * @param reservationsSorted liste des réservations TRIÉES par dateHeureArrive
-     * @return List<List<Reservation>> groupes de réservations, chacun dans sa fenêtre 30 min
+     * @return List<List<Reservation>> groupes de réservations, chacun dans sa fenêtre configurée
      */
-    public List<List<Reservation>> regrouperReservationsParFenetre30Min(List<Reservation> reservationsSorted) {
+    public List<List<Reservation>> regrouperReservationsParFenetre30Min(List<Reservation> reservationsSorted) throws SQLException {
         List<List<Reservation>> groupes = new ArrayList<>();
+        int tempsAttenteGroupement = getTempsAttenteGroupementMinutes();
         
         if (reservationsSorted == null || reservationsSorted.isEmpty()) {
             return groupes;
@@ -382,9 +368,9 @@ public class AssignationService {
                 if (!groupe.isEmpty()) {
                     // Récupérer l'heure d'arrivée du PREMIER élément du groupe (référence de fenêtre)
                     LocalDateTime premierArrivee = groupe.get(0).getDateHeureArrive();
-                    LocalDateTime finFenetre = premierArrivee.plusMinutes(30);
+                    LocalDateTime finFenetre = premierArrivee.plusMinutes(tempsAttenteGroupement);
 
-                    // Vérifier si la réservation est dans la fenêtre [premierArrivee, premierArrivee + 30 min]
+                    // Vérifier si la réservation est dans la fenêtre paramétrée
                     if (!dateArriveeRes.isBefore(premierArrivee) && !dateArriveeRes.isAfter(finFenetre)) {
                         groupeTrouve = groupe;
                         break;
@@ -409,7 +395,7 @@ public class AssignationService {
      * SPRINT 5: Calcule l'heure de départ pour un groupe de réservations.
      * 
      * RÈGLE: heure_départ = MAX(heure_arrivée) du groupe
-     * - Les 30 minutes servent à créer la fenêtre de regroupement
+      * - Le temps d'attente configuré sert à créer la fenêtre de regroupement
      * - L'heure de départ = la dernière heure d'arrivée des vols du groupe
      * - Si résultat < 08:00 → forcer 08:00 (départ minimum légal)
      * 
@@ -666,13 +652,13 @@ public class AssignationService {
     }
 
     /**
-     * SPRINT 5 : Planifie les réservations d'une journée en les regroupant
-     * par fenêtre de 30 minutes autour de leur heure d'arrivée.
+    * SPRINT 5 : Planifie les réservations d'une journée en les regroupant
+    * selon le temps d'attente configuré autour de leur heure d'arrivée.
      *
      * Algorithme :
      * 1. Récupère toutes les réservations du jour
      * 2. Les trie par heure d'arrivée croissante
-     * 3. Les regroupe en fenêtres de 30 minutes
+    * 3. Les regroupe selon le temps d'attente configuré
      * 4. Pour chaque groupe, l'heure de départ = MAX(heure_arrivée) du groupe
      * 5. Assigne les véhicules selon les règles Sprint 4 (+ grande réservation en premier,
      *    véhicule déjà utilisé prioritaire, minimum de places vides, Diesel en priorité)
@@ -693,7 +679,7 @@ public class AssignationService {
         // 2. Trier par heure d'arrivée croissante
         List<Reservation> triees = trierReservationsParHeureArrivee(toutesReservations);
 
-        // 3. Grouper en fenêtres de 30 minutes
+        // 3. Grouper selon le temps d'attente configuré
         List<List<Reservation>> fenetres = regrouperReservationsParFenetre30Min(triees);
 
         // 4. Récupérer tous les véhicules disponibles (une seule fois)
@@ -807,8 +793,9 @@ public class AssignationService {
             groupementDTO.setNumeroGroupe(numGroupe + 1);
             LocalDateTime fenetreDebut = groupe.get(0).getDateHeureArrive();
             if (fenetreDebut != null) {
+                int tempsAttenteGroupement = getTempsAttenteGroupementMinutes();
                 groupementDTO.setFenetreDebut(fenetreDebut);
-                groupementDTO.setFenetreFin(fenetreDebut.plusMinutes(30));
+                groupementDTO.setFenetreFin(fenetreDebut.plusMinutes(tempsAttenteGroupement));
             }
             groupementDTO.setHeureDepart(heureDepart);
             groupementDTO.setTrajets(trajetsActifs);

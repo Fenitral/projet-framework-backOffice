@@ -8,10 +8,13 @@
 -- Étape 2: Ajouter les contraintes et index
 -- $> psql -U postgres -d reservation_voiture -f V5.1__2026-03-16__constraints_local.sql
 
--- Étape 3: Réinitialiser les données (optionnel, destructif)
+-- Étape 3: Aligner la planification avec parametre
+-- $> psql -U postgres -d reservation_voiture -f V5.2__2026-03-17__replace_window_with_parametre.sql
+
+-- Étape 4: Réinitialiser les données (optionnel, destructif)
 -- $> psql -U postgres -d reservation_voiture -f local-reinit.sql
 
--- Étape 4: Insérer les données de test
+-- Étape 5: Insérer les données de test
 -- $> psql -U postgres -d reservation_voiture -f local-seed.sql
 
 -- ============================================================================
@@ -24,13 +27,12 @@
 --    - unite
 --    - token_expiration
 --    - regroupement
---    - temps_attente_window
 --
 -- 2. TABLES AVEC DÉPENDANCES
 --    - parametre (dépend de unite)
 --    - distance (dépend de hotel)
 --    - reservation (dépend de hotel, client)
---    - planification (dépend de temps_attente_window)
+--    - planification (dépend de parametre)
 --
 -- 3. TABLES RÉSULTATS
 --    - assignation (dépend de reservation, client, regroupement, vehicule)
