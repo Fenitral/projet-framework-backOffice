@@ -69,7 +69,6 @@ public class ReservationRepository {
                 reservation.setNbPassager(resultSet.getInt("nbPassager"));
                 reservation.setHotel(hotel);
                 
-                // Récupérer le client s'il existe
                 int clientId = resultSet.getInt("client_id");
                 if (!resultSet.wasNull()) {
                     reservation.setClientId(clientId);
@@ -87,9 +86,6 @@ public class ReservationRepository {
         return reservations;
     }
 
-    /**
-     * Récupère toutes les réservations pour une date donnée avec les informations du client.
-     */
     public List<Reservation> findByDate(LocalDate date) throws SQLException {
         String sql = "SELECT r.Id_reservation, r.DateHeureArrive, r.idClient, r.nbPassager, r.client_id, " +
                      "h.Id_Hotel, h.nom, " +
@@ -121,7 +117,6 @@ public class ReservationRepository {
                     reservation.setNbPassager(resultSet.getInt("nbPassager"));
                     reservation.setHotel(hotel);
                     
-                    // Récupérer le client s'il existe
                     int clientId = resultSet.getInt("client_id");
                     if (!resultSet.wasNull()) {
                         reservation.setClientId(clientId);

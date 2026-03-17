@@ -38,9 +38,6 @@ public class AssignationRepository {
         }
     }
 
-    /**
-     * Récupère les IDs des réservations déjà assignées.
-     */
     public List<Integer> findAssignedReservationIds() throws SQLException {
         String sql = "SELECT DISTINCT reservation_id FROM local.assignation WHERE reservation_id IS NOT NULL";
         List<Integer> ids = new ArrayList<>();
