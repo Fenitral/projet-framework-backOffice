@@ -9,7 +9,10 @@ import com.framework.model.ModelView;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * SPRINT 5 : Contrôleur pour la fonctionnalité "Groupement des voitures".
@@ -42,7 +45,8 @@ public class GroupementController {
      */
     @GetMapping("/groupementResultats")
     public ModelView showGroupementResultats(
-            @Param("dateStr") String dateStr) throws SQLException {
+            @Param("dateStr") String dateStr,
+            @Param("heureStr") String heureStr) throws SQLException {
 
         LocalDate date;
         if (dateStr != null && !dateStr.isBlank()) {
@@ -53,9 +57,22 @@ public class GroupementController {
 
         List<GroupementDTO> groupements = assignationService.planifierParGroupements(date);
 
+        LocalTime heureFiltre = null;
+        if (heureStr != null && !heureStr.isBlank()) {
+            heureFiltre = LocalTime.parse(heureStr);
+            LocalDateTime dateHeureFiltre = LocalDateTime.of(date, heureFiltre);
+            groupements = groupements.stream()
+                .filter(groupement -> groupement.getFenetreDebut() != null
+                    && groupement.getFenetreFin() != null
+                    && !dateHeureFiltre.isBefore(groupement.getFenetreDebut())
+                    && !dateHeureFiltre.isAfter(groupement.getFenetreFin()))
+                .collect(Collectors.toList());
+        }
+
         ModelView mv = new ModelView("/WEB-INF/views/groupementResultats.jsp");
         mv.addAttribute("groupements", groupements);
         mv.addAttribute("datePlanification", date.toString());
+        mv.addAttribute("heureFiltre", heureFiltre != null ? heureFiltre.toString() : "");
         return mv;
     }
 }

@@ -805,6 +805,11 @@ public class AssignationService {
             // Construire le GroupementDTO
             GroupementDTO groupementDTO = new GroupementDTO();
             groupementDTO.setNumeroGroupe(numGroupe + 1);
+            LocalDateTime fenetreDebut = groupe.get(0).getDateHeureArrive();
+            if (fenetreDebut != null) {
+                groupementDTO.setFenetreDebut(fenetreDebut);
+                groupementDTO.setFenetreFin(fenetreDebut.plusMinutes(30));
+            }
             groupementDTO.setHeureDepart(heureDepart);
             groupementDTO.setTrajets(trajetsActifs);
             groupementDTO.setTotalReservations(groupe.size());

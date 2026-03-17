@@ -56,7 +56,8 @@
             margin-right: 8px;
             color: #667eea;
         }
-        input[type="date"] {
+        input[type="date"],
+        input[type="time"] {
             width: 100%;
             padding: 14px;
             border: 2px solid #e0e0e0;
@@ -64,7 +65,8 @@
             font-size: 16px;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-        input[type="date"]:focus {
+        input[type="date"]:focus,
+        input[type="time"]:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
@@ -123,6 +125,11 @@
                 <div class="form-group">
                     <label for="dateStr"><i class="fas fa-calendar-day"></i>Date :</label>
                     <input type="date" id="dateStr" name="dateStr" value="${today}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="heureStr"><i class="fas fa-clock"></i>Filtre heure :</label>
+                    <input type="time" id="heureStr" name="heureStr">
                 </div>
 
                 <button type="submit">

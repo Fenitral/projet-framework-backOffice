@@ -11,6 +11,8 @@ import java.util.List;
 public class GroupementDTO {
 
     private int numeroGroupe;
+    private LocalDateTime fenetreDebut;
+    private LocalDateTime fenetreFin;
     private LocalDateTime heureDepart;        // Même pour tous les véhicules du groupe
     private List<TrajetVehiculeDTO> trajets;  // Un trajet par véhicule utilisé
     private int totalReservations;
@@ -26,6 +28,22 @@ public class GroupementDTO {
 
     public void setNumeroGroupe(int numeroGroupe) {
         this.numeroGroupe = numeroGroupe;
+    }
+
+    public LocalDateTime getFenetreDebut() {
+        return fenetreDebut;
+    }
+
+    public void setFenetreDebut(LocalDateTime fenetreDebut) {
+        this.fenetreDebut = fenetreDebut;
+    }
+
+    public LocalDateTime getFenetreFin() {
+        return fenetreFin;
+    }
+
+    public void setFenetreFin(LocalDateTime fenetreFin) {
+        this.fenetreFin = fenetreFin;
     }
 
     public LocalDateTime getHeureDepart() {

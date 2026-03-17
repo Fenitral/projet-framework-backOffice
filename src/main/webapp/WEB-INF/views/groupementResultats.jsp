@@ -103,6 +103,52 @@
         .summary-card .value { font-size: 1.6em; font-weight: 700; color: #1e293b; }
         .summary-card .label { font-size: 0.8em; color: #64748b; margin-top: 2px; }
 
+        .filter-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .filter-form {
+            display: flex;
+            align-items: end;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+        }
+        .filter-group label {
+            font-size: 0.85em;
+            font-weight: 700;
+            color: #475569;
+        }
+        .filter-group input[type="time"] {
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+        .filter-group input[type="time"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        .filter-note {
+            margin-top: 12px;
+            color: #64748b;
+            font-size: 0.85em;
+        }
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         /* ── Vide ─────────────────────────────────────────── */
         .empty-state {
             background: white;
@@ -315,6 +361,7 @@
     DateTimeFormatter FMT_TIME = DateTimeFormatter.ofPattern("HH:mm");
     DateTimeFormatter FMT_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     String datePlanification   = (String) request.getAttribute("datePlanification");
+    String heureFiltre = (String) request.getAttribute("heureFiltre");
 
     @SuppressWarnings("unchecked")
     List<GroupementDTO> groupements = (List<GroupementDTO>) request.getAttribute("groupements");
@@ -331,6 +378,25 @@
 %>
 
 <div class="container">
+
+    <div class="filter-panel">
+        <form action="<%= request.getContextPath() %>/groupementResultats" method="get" class="filter-form">
+            <input type="hidden" name="dateStr" value="<%= datePlanification != null ? datePlanification : "" %>">
+            <div class="filter-group">
+                <label for="heureStr"><i class="fas fa-clock" style="margin-right:6px"></i>Filtrer par heure</label>
+                <input type="time" id="heureStr" name="heureStr" value="<%= heureFiltre != null ? heureFiltre : "" %>">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-white"><i class="fas fa-filter"></i>Filtrer</button>
+                <a href="<%= request.getContextPath() %>/groupementResultats?dateStr=<%= datePlanification %>" class="btn btn-outline" style="color:#667eea;border-color:#cbd5e1;background:#fff;">
+                    <i class="fas fa-rotate-left"></i>Réinitialiser
+                </a>
+            </div>
+        </form>
+        <div class="filter-note">
+            L'heure saisie affiche uniquement le groupement dont la fenêtre contient cet horaire : première réservation du groupe jusqu'à +30 min.
+        </div>
+    </div>
 
     <!-- En-tête -->
     <div class="page-header">
@@ -408,6 +474,10 @@
                         <%= grp.getTrajets().size() %> voiture<%= grp.getTrajets().size() > 1 ? "s" : "" %>
                         &nbsp;·&nbsp;
                         <%= grp.getTotalPassagers() %> passager<%= grp.getTotalPassagers() > 1 ? "s" : "" %>
+                        <% if (grp.getFenetreDebut() != null && grp.getFenetreFin() != null) { %>
+                        &nbsp;·&nbsp;
+                        fenêtre <%= grp.getFenetreDebut().format(FMT_TIME) %> - <%= grp.getFenetreFin().format(FMT_TIME) %>
+                        <% } %>
                     </div>
                 </div>
             </div>

@@ -15,3 +15,8 @@ j'espere que t'as compris.
 
 deuxiemement, peux-tu m'expliquer la troisieme colonne actuellement ? quel est cet heure qui est affichee a cotee de l'hotel ?!
 
+filtre-regroupement:
+maintenant, voici ce que je veux faire: ajouter une filtre dans la page d'affichage de regroupement, une filtre d'heure 
+donc, quand j'entre l'heure dans le champs, on va afficher le groupement dans lequel cet intervalle appartient
+
+peux-tu m'aider a realiser cela stp 
