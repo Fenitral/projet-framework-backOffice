@@ -6,15 +6,19 @@ import com.cousin.dto.ReservationAffecteeDTO;
 import com.cousin.dto.TrajetVehiculeDTO;
 import com.cousin.model.Assignation;
 import com.cousin.model.Reservation;
+import com.cousin.model.TrajetExecution;
 import com.cousin.model.Vehicule;
 import com.cousin.repository.AssignationRepository;
 import com.cousin.repository.ReservationRepository;
+import com.cousin.repository.TrajetExecutionRepository;
 import com.cousin.repository.VehiculeRepository;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,16 +26,14 @@ public class AssignationService {
 
     // ID représentant l'aéroport dans la table distance
     private static final int AEROPORT_ID = 0;
+    private static final int TEMPS_ATTENTE_GROUPEMENT_MINUTES = 30;
     
     // Types de carburant (priorité au Diesel)
     private static final String TYPE_DIESEL = "D";
-    private static final String TYPE_ESSENCE = "ES";
-    private static final String TYPE_HYBRIDE = "H";
-    private static final String TYPE_ELECTRIQUE = "EL";
-
     private final ReservationRepository reservationRepository;
     private final VehiculeRepository vehiculeRepository;
     private final AssignationRepository assignationRepository;
+    private final TrajetExecutionRepository trajetExecutionRepository;
     private final DistanceService distanceService;
     private final ParametreService parametreService;
 
@@ -39,6 +41,7 @@ public class AssignationService {
         this.reservationRepository = new ReservationRepository();
         this.vehiculeRepository = new VehiculeRepository();
         this.assignationRepository = new AssignationRepository();
+        this.trajetExecutionRepository = new TrajetExecutionRepository();
         this.distanceService = new DistanceService();
         this.parametreService = new ParametreService();
     }
@@ -46,11 +49,26 @@ public class AssignationService {
     public AssignationService(ReservationRepository reservationRepository,
                               VehiculeRepository vehiculeRepository,
                               AssignationRepository assignationRepository,
+                      DistanceService distanceService,
+                      ParametreService parametreService) {
+        this(reservationRepository,
+            vehiculeRepository,
+            assignationRepository,
+            new TrajetExecutionRepository(),
+            distanceService,
+            parametreService);
+        }
+
+        public AssignationService(ReservationRepository reservationRepository,
+                      VehiculeRepository vehiculeRepository,
+                      AssignationRepository assignationRepository,
+                              TrajetExecutionRepository trajetExecutionRepository,
                               DistanceService distanceService,
                               ParametreService parametreService) {
         this.reservationRepository = reservationRepository;
         this.vehiculeRepository = vehiculeRepository;
         this.assignationRepository = assignationRepository;
+        this.trajetExecutionRepository = trajetExecutionRepository;
         this.distanceService = distanceService;
         this.parametreService = parametreService;
     }
@@ -132,63 +150,14 @@ public class AssignationService {
             return false;
         }
         String type = typeVehicule.trim().toUpperCase();
-        return type.equals("D") || type.equals("DIESEL");
+        return type.equals(TYPE_DIESEL) || type.equals("DIESEL");
     }
 
 
-    public TrajetVehiculeDTO selectBestVehicle(List<TrajetVehiculeDTO> candidats, int nbPassagers) {
-        if (candidats == null || candidats.isEmpty()) {
-            return null;
-        }
-
-        // SPRINT 4: Séparer les véhicules déjà utilisés des véhicules vides
-        List<TrajetVehiculeDTO> vehiculesUtilises = candidats.stream()
-                .filter(v -> !v.getListeReservations().isEmpty())
-                .filter(v -> v.getPlacesDisponibles() >= nbPassagers)
-                .collect(Collectors.toList());
-
-        List<TrajetVehiculeDTO> vehiculesVides = candidats.stream()
-                .filter(v -> v.getListeReservations().isEmpty())
-                .filter(v -> v.getPlacesDisponibles() >= nbPassagers)
-                .collect(Collectors.toList());
-
-        // Priorité aux véhicules déjà utilisés s'ils ont assez de place
-        List<TrajetVehiculeDTO> vehiculesAConsiderer;
-        if (!vehiculesUtilises.isEmpty()) {
-            vehiculesAConsiderer = vehiculesUtilises;
-        } else {
-            vehiculesAConsiderer = vehiculesVides;
-        }
-
-        if (vehiculesAConsiderer.isEmpty()) {
-            return null;
-        }
-
-        // Trouver le véhicule avec le minimum de places vides après assignation
-        // (c'est-à-dire celui qui sera le plus rempli)
-        int minPlacesVides = vehiculesAConsiderer.stream()
-                .mapToInt(v -> v.getPlacesDisponibles() - nbPassagers)
-                .min()
-                .orElse(Integer.MAX_VALUE);
-
-        // Filtrer les véhicules avec ce minimum de places vides
-        List<TrajetVehiculeDTO> vehiculesOptimaux = vehiculesAConsiderer.stream()
-                .filter(v -> (v.getPlacesDisponibles() - nbPassagers) == minPlacesVides)
-                .collect(Collectors.toList());
-
-        // Si plusieurs candidats, priorité aux Diesel
-        if (vehiculesOptimaux.size() > 1) {
-            List<TrajetVehiculeDTO> diesels = vehiculesOptimaux.stream()
-                    .filter(v -> isDiesel(v.getTypeVehicule()))
-                    .collect(Collectors.toList());
-            if (!diesels.isEmpty()) {
-                vehiculesOptimaux = diesels;
-            }
-        }
-
-        // Choix aléatoire si plusieurs véhicules optimaux
-        Random random = new Random();
-        return vehiculesOptimaux.get(random.nextInt(vehiculesOptimaux.size()));
+    public TrajetVehiculeDTO selectBestVehicle(List<TrajetVehiculeDTO> candidats,
+                                               int nbPassagers,
+                                               Map<Integer, Integer> vehiculeTrajetCounts) {
+        return selectBestVehicleByPriority(candidats, nbPassagers, vehiculeTrajetCounts);
     }
 
     /**
@@ -235,7 +204,126 @@ public class AssignationService {
     }
 
     private int getTempsAttenteGroupementMinutes() throws SQLException {
-        return parametreService.getTempsAttenteGroupement();
+        return TEMPS_ATTENTE_GROUPEMENT_MINUTES;
+    }
+
+    private boolean isVehiculeDisponiblePourFenetre(TrajetVehiculeDTO vehicule,
+                                                    int nbPassagers,
+                                                    LocalDateTime fenetreFin,
+                                                    Map<Integer, LocalDateTime> vehiculeReturnTimes) {
+        if (vehicule.getPlacesDisponibles() < nbPassagers) {
+            return false;
+        }
+
+        LocalDateTime retour = vehiculeReturnTimes.get(vehicule.getVehiculeId());
+        return retour == null || !retour.isAfter(fenetreFin);
+    }
+
+        private TrajetVehiculeDTO selectBestVehicleByLoadAndFuel(List<TrajetVehiculeDTO> candidats,
+                                      int nbPassagers,
+                                      Map<Integer, Integer> vehiculeTrajetCounts) {
+        return selectBestVehicleByPriority(candidats, nbPassagers, vehiculeTrajetCounts);
+        }
+
+        private TrajetVehiculeDTO selectBestVehicleByPriority(List<TrajetVehiculeDTO> candidats,
+                                  int nbPassagers,
+                                  Map<Integer, Integer> vehiculeTrajetCounts) {
+        if (candidats == null || candidats.isEmpty()) {
+            return null;
+        }
+
+        Map<Integer, Integer> counts = vehiculeTrajetCounts != null ? vehiculeTrajetCounts : Collections.emptyMap();
+
+        // 1) Priorite au vehicule avec capacite la plus proche du besoin (moins de places vides).
+        int minPlacesVides = candidats.stream()
+            .mapToInt(v -> v.getPlacesDisponibles() - nbPassagers)
+            .min()
+            .orElse(Integer.MAX_VALUE);
+
+        List<TrajetVehiculeDTO> byCapacity = candidats.stream()
+            .filter(v -> (v.getPlacesDisponibles() - nbPassagers) == minPlacesVides)
+            .collect(Collectors.toList());
+
+        if (byCapacity.size() == 1) {
+            return byCapacity.get(0);
+        }
+
+        // 2) Parmi eux, priorite au vehicule avec le moins de trajets.
+        int minTrajets = byCapacity.stream()
+            .mapToInt(v -> counts.getOrDefault(v.getVehiculeId(), 0))
+                .min()
+                .orElse(Integer.MAX_VALUE);
+
+        List<TrajetVehiculeDTO> leastLoaded = byCapacity.stream()
+            .filter(v -> counts.getOrDefault(v.getVehiculeId(), 0) == minTrajets)
+                .collect(Collectors.toList());
+
+        if (leastLoaded.size() == 1) {
+            return leastLoaded.get(0);
+        }
+
+        // 3) Parmi egalite, priorite au diesel.
+        List<TrajetVehiculeDTO> diesels = leastLoaded.stream()
+                .filter(v -> isDiesel(v.getTypeVehicule()))
+                .collect(Collectors.toList());
+
+        List<TrajetVehiculeDTO> finalPool = diesels.isEmpty() ? leastLoaded : diesels;
+
+        // 4) Derniere egalite: choix aleatoire.
+        Random random = new Random();
+        return finalPool.get(random.nextInt(finalPool.size()));
+    }
+
+    private int calculatePassengerCount(TrajetVehiculeDTO trajet) {
+        if (trajet == null || trajet.getListeReservations() == null) {
+            return 0;
+        }
+        return trajet.getListeReservations().stream()
+                .mapToInt(ReservationAffecteeDTO::getNbPassager)
+                .sum();
+    }
+
+    private void persistTrajetExecutionIfNeeded(TrajetVehiculeDTO trajet, LocalDate dateService) throws SQLException {
+        if (trajet == null
+                || trajet.getListeReservations() == null
+                || trajet.getListeReservations().isEmpty()
+                || trajet.getHeureDepart() == null
+                || trajet.getHeureRetourPrevue() == null
+                || dateService == null) {
+            return;
+        }
+
+        boolean exists = trajetExecutionRepository.existsByVehicleDateAndHours(
+                trajet.getVehiculeId(),
+                dateService,
+                trajet.getHeureDepart(),
+                trajet.getHeureRetourPrevue());
+
+        if (exists) {
+            return;
+        }
+
+        // If same service window already exists with another vehicle (random tie on refresh),
+        // keep a single row and just switch the vehicle.
+        Integer existingTrajetId = trajetExecutionRepository.findTrajetIdByDateAndHours(
+            dateService,
+            trajet.getHeureDepart(),
+            trajet.getHeureRetourPrevue());
+
+        if (existingTrajetId != null) {
+            trajetExecutionRepository.updateVehicleByTrajetId(existingTrajetId, trajet.getVehiculeId());
+            return;
+        }
+
+        TrajetExecution execution = new TrajetExecution();
+        execution.setVehiculeId(trajet.getVehiculeId());
+        execution.setDateService(dateService);
+        execution.setHeureDepart(trajet.getHeureDepart());
+        execution.setHeureRetour(trajet.getHeureRetourPrevue());
+        execution.setDistanceTotale(BigDecimal.valueOf(trajet.getDistanceTotale()).setScale(2, RoundingMode.HALF_UP));
+        execution.setNombrePassagers(calculatePassengerCount(trajet));
+
+        trajetExecutionRepository.insert(execution);
     }
 
     /**
@@ -491,9 +579,17 @@ public class AssignationService {
         // 4. Initialiser les états des véhicules
         List<TrajetVehiculeDTO> etatsVehicules = initVehiculeStates(vehicules, heureDepart);
 
+        // Historique de charge par vehicule sur la date planifiee.
+        Map<Integer, Integer> vehiculeTrajetCounts = new HashMap<>();
+        for (Vehicule v : vehicules) {
+            int count = trajetExecutionRepository.countTrajetsByVehicleAndDate(v.getIdVehicule(), date);
+            vehiculeTrajetCounts.put(v.getIdVehicule(), count);
+        }
+
         // 5. Affecter les réservations aux véhicules
         List<ReservationAffecteeDTO> nonAffectees = new ArrayList<>();
         int totalPassagers = 0;
+        Set<Integer> vehiculesAvecNouveauTrajet = new HashSet<>();
 
         for (Reservation reservation : reservationsTriees) {
             // Trouver les candidats
@@ -505,7 +601,10 @@ public class AssignationService {
                 nonAffectees.add(nonAffectee);
             } else {
                 // Sélectionner le meilleur véhicule
-                TrajetVehiculeDTO vehiculeChoisi = selectBestVehicle(candidats, reservation.getNbPassager());
+                TrajetVehiculeDTO vehiculeChoisi = selectBestVehicle(
+                    candidats,
+                    reservation.getNbPassager(),
+                    vehiculeTrajetCounts);
                 
                 // Calculer la distance depuis le point précédent
                 int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty() 
@@ -519,7 +618,16 @@ public class AssignationService {
                 // Créer le DTO et l'ajouter au véhicule
                 int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
                 ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance);
+
+                boolean premierAffectationDuTrajet = vehiculeChoisi.getListeReservations().isEmpty();
                 vehiculeChoisi.addReservation(affectee);
+
+                // Reflect in-memory count once when a vehicle starts a new trip.
+                if (premierAffectationDuTrajet && vehiculesAvecNouveauTrajet.add(vehiculeChoisi.getVehiculeId())) {
+                    vehiculeTrajetCounts.put(
+                        vehiculeChoisi.getVehiculeId(),
+                        vehiculeTrajetCounts.getOrDefault(vehiculeChoisi.getVehiculeId(), 0) + 1);
+                }
                 
                 totalPassagers += reservation.getNbPassager();
             }
@@ -592,6 +700,9 @@ public class AssignationService {
                 trajet.setDistanceTotale(distanceTotale);
                 
                 trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
+
+                // Sprint 6: persister le trajet effectue pour historiser la charge vehicule
+                persistTrajetExecutionIfNeeded(trajet, date);
                 distanceTotaleJour += distanceTotale;
             }
         }
@@ -686,6 +797,17 @@ public class AssignationService {
         List<Vehicule> tousVehicules = getAllVehicules();
         int vitesseMoyenne = parametreService.getVitesseMoyenne();
 
+        // États persistants sur la journée pour appliquer les nouvelles règles
+        Map<Integer, LocalDateTime> vehiculeReturnTimes = new HashMap<>();
+        Map<Integer, Integer> vehiculeTrajetCounts = new HashMap<>();
+        for (Vehicule v : tousVehicules) {
+            int count = trajetExecutionRepository.countTrajetsByVehicleAndDate(v.getIdVehicule(), date);
+            vehiculeTrajetCounts.put(v.getIdVehicule(), count);
+        }
+
+        // Réservations non affectées à reconsidérer au prochain groupement
+        List<Reservation> reservationsEnAttente = new ArrayList<>();
+
         // 5. Construire un GroupementDTO par fenêtre
         for (int numGroupe = 0; numGroupe < fenetres.size(); numGroupe++) {
             List<Reservation> groupe = fenetres.get(numGroupe);
@@ -693,23 +815,62 @@ public class AssignationService {
                 continue;
             }
 
-            // Heure de départ = MAX(heure arrivée) du groupe
-            LocalDateTime heureDepart = calculerHeureDepartGroupe(groupe);
+            // Heure de départ de référence (si aucun véhicule en retour dans la fenêtre)
+            LocalDateTime heureDepartReference = calculerHeureDepartGroupe(groupe);
+            LocalDateTime fenetreDebut = groupe.get(0).getDateHeureArrive();
+            int tempsAttenteGroupement = getTempsAttenteGroupementMinutes();
+            LocalDateTime fenetreFin = fenetreDebut != null ? fenetreDebut.plusMinutes(tempsAttenteGroupement) : null;
 
-            // Initialiser les états véhicules pour CE groupe (repart de zéro)
-            List<TrajetVehiculeDTO> etatsVehicules = initVehiculeStates(tousVehicules, heureDepart);
+            // Initialiser les états véhicules pour CE groupe
+            List<TrajetVehiculeDTO> etatsVehicules = initVehiculeStates(tousVehicules, heureDepartReference);
+
+            // Les réservations en attente sont réessayées dans ce groupement,
+            // mais ne changent pas la fenêtre temporelle du groupement.
+            List<Reservation> reservationsAPlanifier = new ArrayList<>();
+            reservationsAPlanifier.addAll(reservationsEnAttente);
+            reservationsAPlanifier.addAll(groupe);
 
             // Trier les réservations du groupe par nbPassager DESC (règle Sprint 4)
-            List<Reservation> reservationsTriees = sortReservationsByNbPassagerDesc(groupe);
+            List<Reservation> reservationsTriees = sortReservationsByNbPassagerDesc(reservationsAPlanifier);
 
             int totalPassagers = 0;
+            boolean departDepuisRetourVehicule = false;
+            List<Reservation> nonAffecteesPourLeProchain = new ArrayList<>();
+            LocalDateTime derniereReservationAssigneeDansFenetre = null;
 
             // Assigner les réservations aux véhicules
             for (Reservation reservation : reservationsTriees) {
-                List<TrajetVehiculeDTO> candidats = findCandidates(etatsVehicules, reservation.getNbPassager());
+                if (reservation.getDateHeureArrive() == null) {
+                    nonAffecteesPourLeProchain.add(reservation);
+                    continue;
+                }
+
+                List<TrajetVehiculeDTO> candidats = etatsVehicules.stream()
+                        .filter(v -> isVehiculeDisponiblePourFenetre(v,
+                                reservation.getNbPassager(),
+                                fenetreFin != null ? fenetreFin : heureDepartReference,
+                                vehiculeReturnTimes))
+                        .collect(Collectors.toList());
 
                 if (!candidats.isEmpty()) {
-                    TrajetVehiculeDTO vehiculeChoisi = selectBestVehicle(candidats, reservation.getNbPassager());
+                        TrajetVehiculeDTO vehiculeChoisi = selectBestVehicleByLoadAndFuel(
+                            candidats,
+                            reservation.getNbPassager(),
+                            vehiculeTrajetCounts);
+
+                    if (vehiculeChoisi == null) {
+                        nonAffecteesPourLeProchain.add(reservation);
+                        continue;
+                    }
+
+                    LocalDateTime retourVehicule = vehiculeReturnTimes.get(vehiculeChoisi.getVehiculeId());
+                    if (retourVehicule != null
+                            && fenetreDebut != null
+                            && fenetreFin != null
+                            && !retourVehicule.isBefore(fenetreDebut)
+                            && !retourVehicule.isAfter(fenetreFin)) {
+                        departDepuisRetourVehicule = true;
+                    }
 
                     int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty()
                             ? AEROPORT_ID
@@ -721,11 +882,52 @@ public class AssignationService {
                     int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
                     ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance);
                     vehiculeChoisi.addReservation(affectee);
+
+                    if (fenetreDebut != null
+                            && fenetreFin != null
+                            && !reservation.getDateHeureArrive().isBefore(fenetreDebut)
+                            && !reservation.getDateHeureArrive().isAfter(fenetreFin)
+                            && (derniereReservationAssigneeDansFenetre == null
+                            || reservation.getDateHeureArrive().isAfter(derniereReservationAssigneeDansFenetre))) {
+                        derniereReservationAssigneeDansFenetre = reservation.getDateHeureArrive();
+                    }
+
                     totalPassagers += reservation.getNbPassager();
+                } else {
+                    nonAffecteesPourLeProchain.add(reservation);
                 }
-                // Les réservations non affectables dans ce groupe sont ignorées
-                // (capacité insuffisante) — aucun véhicule assez grand
             }
+
+            // Regle metier: depart base = derniere reservation assignee de la fenetre.
+            LocalDateTime heureDepartBaseGroupe = derniereReservationAssigneeDansFenetre != null
+                    ? derniereReservationAssigneeDansFenetre
+                    : heureDepartReference;
+
+            // Heure de depart par voiture:
+            // max(heure de base du groupement, heure de retour du vehicule si retour dans la fenetre).
+            for (TrajetVehiculeDTO trajet : etatsVehicules) {
+                if (trajet.getListeReservations().isEmpty()) {
+                    continue;
+                }
+
+                LocalDateTime heureDepartVoiture = heureDepartBaseGroupe;
+                LocalDateTime retourVehicule = vehiculeReturnTimes.get(trajet.getVehiculeId());
+                boolean retourDansFenetre = retourVehicule != null
+                        && fenetreDebut != null
+                        && fenetreFin != null
+                        && !retourVehicule.isBefore(fenetreDebut)
+                        && !retourVehicule.isAfter(fenetreFin);
+
+                if (retourDansFenetre && retourVehicule != null
+                        && (heureDepartVoiture == null || retourVehicule.isAfter(heureDepartVoiture))) {
+                    heureDepartVoiture = retourVehicule;
+                }
+
+                trajet.setHeureDepart(heureDepartVoiture);
+            }
+
+            // Non affectées => prochain groupement (leur heure n'influence pas la fenêtre suivante)
+            reservationsEnAttente = nonAffecteesPourLeProchain;
 
             // Trier les réservations de chaque véhicule par distance depuis l'aéroport
             // et recalculer les heures de passage
@@ -752,7 +954,7 @@ public class AssignationService {
                         .collect(Collectors.toList());
 
                 // Recalculer distances inter-stops et heures de passage
-                LocalDateTime heureActuelle = heureDepart;
+                LocalDateTime heureActuelle = trajet.getHeureDepart() != null ? trajet.getHeureDepart() : heureDepartReference;
                 int lieuPrecedent = AEROPORT_ID;
 
                 for (int i = 0; i < ordonnees.size(); i++) {
@@ -781,6 +983,16 @@ public class AssignationService {
                 trajet.setDistanceTotale(distTotale);
 
                 trajet.setHeureRetourPrevue(calculerHeureRetour(trajet));
+
+                // Sprint 6: persister le trajet effectue pour historiser la charge vehicule
+                persistTrajetExecutionIfNeeded(trajet, date);
+
+                if (trajet.getHeureRetourPrevue() != null) {
+                    vehiculeReturnTimes.put(trajet.getVehiculeId(), trajet.getHeureRetourPrevue());
+                }
+                vehiculeTrajetCounts.put(
+                        trajet.getVehiculeId(),
+                        vehiculeTrajetCounts.getOrDefault(trajet.getVehiculeId(), 0) + 1);
             }
 
             // Ne garder que les véhicules actifs (avec au moins une réservation)
@@ -788,19 +1000,33 @@ public class AssignationService {
                     .filter(t -> !t.getListeReservations().isEmpty())
                     .collect(Collectors.toList());
 
+            LocalDateTime heureDepartAffichee = heureDepartBaseGroupe;
+            for (TrajetVehiculeDTO trajetActif : trajetsActifs) {
+                if (trajetActif.getHeureDepart() != null
+                        && (heureDepartAffichee == null || trajetActif.getHeureDepart().isAfter(heureDepartAffichee))) {
+                    heureDepartAffichee = trajetActif.getHeureDepart();
+                }
+            }
+
             // Construire le GroupementDTO
             GroupementDTO groupementDTO = new GroupementDTO();
             groupementDTO.setNumeroGroupe(numGroupe + 1);
-            LocalDateTime fenetreDebut = groupe.get(0).getDateHeureArrive();
             if (fenetreDebut != null) {
-                int tempsAttenteGroupement = getTempsAttenteGroupementMinutes();
                 groupementDTO.setFenetreDebut(fenetreDebut);
                 groupementDTO.setFenetreFin(fenetreDebut.plusMinutes(tempsAttenteGroupement));
             }
-            groupementDTO.setHeureDepart(heureDepart);
+                groupementDTO.setHeureDepart(heureDepartAffichee);
             groupementDTO.setTrajets(trajetsActifs);
-            groupementDTO.setTotalReservations(groupe.size());
+                groupementDTO.setTotalReservations(reservationsAPlanifier.size());
             groupementDTO.setTotalPassagers(totalPassagers);
+                groupementDTO.setDepartInfo(departDepuisRetourVehicule
+                    ? ""
+                    : "");
+
+                List<ReservationAffecteeDTO> nonAffecteesDTO = nonAffecteesPourLeProchain.stream()
+                    .map(r -> toReservationAffecteeDTO(r, 0, 0))
+                    .collect(Collectors.toList());
+                groupementDTO.setReservationsNonAffectees(nonAffecteesDTO);
 
             groupements.add(groupementDTO);
         }

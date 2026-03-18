@@ -117,8 +117,8 @@
             <div class="info-box">
                 <i class="fas fa-info-circle"></i>
                 Les réservations sont regroupées par fenêtres de <strong>30 minutes</strong>.
-                L'heure de départ de chaque groupe correspond à la <strong>dernière heure d'arrivée</strong>
-                des vols dans la fenêtre.
+                Un véhicule peut aussi partir à son <strong>heure de retour</strong> s'il revient pendant la fenêtre.
+                Les réservations non affectées sont <strong>reconsidérées au groupe suivant</strong>.
             </div>
 
             <form action="<%= request.getContextPath() %>/groupementResultats" method="get">

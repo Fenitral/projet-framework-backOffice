@@ -1,6 +1,10 @@
 package com.cousin.controller;
 
 import com.cousin.model.Vehicule;
+import com.cousin.model.Hotel;
+import com.cousin.model.Distance;
+import com.cousin.service.DistanceService;
+import com.cousin.service.ReservationService;
 import com.cousin.service.VehiculeService;
 import com.framework.annotation.Controller;
 import com.framework.annotation.GetMapping;
@@ -13,6 +17,8 @@ import java.util.List;
 @Controller
 public class VehiculeController {
     private final VehiculeService vehiculeService = new VehiculeService();
+    private final ReservationService reservationService = new ReservationService();
+    private final DistanceService distanceService = new DistanceService();
 
     @GetMapping("/vehicule/form")
     public ModelView showForm(
@@ -78,8 +84,13 @@ public class VehiculeController {
         }
 
         List<Vehicule> vehicules = vehiculeService.listVehicules();
+        List<Hotel> hotels = reservationService.listHotels();
+        List<Distance> distances = distanceService.getAllDistances();
+
         ModelView mv = new ModelView("/WEB-INF/views/vehicule/list.jsp");
         mv.addAttribute("vehicules", vehicules);
+        mv.addAttribute("hotels", hotels);
+        mv.addAttribute("distances", distances);
         if (message != null) {
             mv.addAttribute("message", message);
         }

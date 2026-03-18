@@ -55,4 +55,18 @@ public class ReservationController {
     public List<Reservation> listReservations() throws SQLException {
         return reservationService.listReservations();
     }
+
+    @GetMapping("/reservation/list")
+    public ModelView showReservationListPage() throws SQLException {
+        ModelView mv = new ModelView("/WEB-INF/views/reservation/list.jsp");
+        mv.addAttribute("reservations", reservationService.listReservations());
+        return mv;
+    }
+
+    @GetMapping("/hotel/list")
+    public ModelView showHotelListPage() throws SQLException {
+        ModelView mv = new ModelView("/WEB-INF/views/hotel/list.jsp");
+        mv.addAttribute("hotels", reservationService.listHotels());
+        return mv;
+    }
 }

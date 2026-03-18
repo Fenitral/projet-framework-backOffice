@@ -3,6 +3,10 @@
 <%@ page import="com.cousin.dto.TrajetVehiculeDTO" %>
 <%@ page import="com.cousin.dto.ReservationAffecteeDTO" %>
 <%@ page import="java.util.List" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.Collections" %>
+<%@ page import="java.util.Comparator" %>
+<%@ page import="java.time.LocalDateTime" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <!DOCTYPE html>
 <html>
@@ -349,8 +353,188 @@
             font-weight: 400;
         }
 
+        .details-card {
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .details-title {
+            font-size: 0.82em;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 8px 12px;
+            margin-bottom: 10px;
+            font-size: 0.82em;
+            color: #475569;
+        }
+
+        .detail-label {
+            font-weight: 700;
+            color: #334155;
+            margin-right: 6px;
+        }
+
+        .detail-link {
+            color: #2563eb;
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 1px dashed transparent;
+        }
+
+        .detail-link:hover {
+            color: #1d4ed8;
+            border-bottom-color: #1d4ed8;
+        }
+
+        .detail-data-store {
+            display: none;
+        }
+
+        .detail-card-pane {
+            display: none;
+        }
+
+        .reservation-details-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+            background: #ffffff;
+        }
+
+        .reservation-details-table th,
+        .reservation-details-table td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .reservation-details-table th {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+        }
+
+        .empty-detail {
+            font-size: 0.82em;
+            color: #94a3b8;
+        }
+
+        .info-inline {
+            margin-top: 8px;
+            font-size: 0.82em;
+            color: #cbd5e1;
+        }
+
+        .unassigned-box {
+            margin: 12px 16px 18px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .unassigned-title {
+            font-size: 0.88em;
+            font-weight: 700;
+            color: #9a3412;
+            margin-bottom: 8px;
+        }
+
+        .unassigned-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .unassigned-item {
+            background: #ffedd5;
+            color: #7c2d12;
+            border: 1px solid #fdba74;
+            border-radius: 18px;
+            padding: 4px 10px;
+            font-size: 0.8em;
+        }
+
+        .floating-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(1px);
+            z-index: 1000;
+            display: none;
+        }
+
+        .floating-detail-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(760px, calc(100vw - 40px));
+            max-height: calc(100vh - 40px);
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 16px;
+            box-shadow: 0 16px 50px rgba(15, 23, 42, 0.28);
+            z-index: 1001;
+            display: none;
+            overflow: hidden;
+        }
+
+        .floating-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #fff;
+        }
+
+        .floating-title {
+            font-size: 0.9em;
+            font-weight: 700;
+        }
+
+        .floating-close {
+            border: 0;
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .floating-close:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
+
+        .floating-body {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            padding: 16px;
+            background: #f8fafc;
+        }
+
         @media (max-width: 900px) {
             body { margin-left: 0; padding: 16px; }
+            .floating-detail-panel {
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: min(94vw, 640px);
+                max-height: 92vh;
+            }
         }
     </style>
 </head>
@@ -369,10 +553,12 @@
     int totalGroupements   = groupements != null ? groupements.size() : 0;
     int totalReservations  = 0;
     int totalVehicules     = 0;
+    int totalNonAffectees  = 0;
     if (groupements != null) {
         for (GroupementDTO g : groupements) {
             totalReservations += g.getTotalReservations();
             totalVehicules    += g.getTrajets().size();
+            totalNonAffectees += g.getReservationsNonAffectees() != null ? g.getReservationsNonAffectees().size() : 0;
         }
     }
 %>
@@ -443,6 +629,13 @@
                 <div class="label">Voitures mobilisées</div>
             </div>
         </div>
+        <div class="summary-card">
+            <div class="icon icon-orange"><i class="fas fa-triangle-exclamation"></i></div>
+            <div>
+                <div class="value"><%= totalNonAffectees %></div>
+                <div class="label">Non affectées (report)</div>
+            </div>
+        </div>
     </div>
 
     <!-- État vide -->
@@ -479,6 +672,9 @@
                         fenêtre <%= grp.getFenetreDebut().format(FMT_TIME) %> - <%= grp.getFenetreFin().format(FMT_TIME) %>
                         <% } %>
                     </div>
+                    <% if (grp.getDepartInfo() != null && !grp.getDepartInfo().isBlank()) { %>
+                    <div class="info-inline"><i class="fas fa-circle-info" style="margin-right:6px"></i><%= grp.getDepartInfo() %></div>
+                    <% } %>
                 </div>
             </div>
             <div class="depart-badge">
@@ -490,7 +686,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th><i class="fas fa-calendar-check" style="margin-right:5px"></i>Heure réservation</th>
+                        <th><i class="fas fa-calendar-check" style="margin-right:5px"></i>Heure départ voiture</th>
                         <th><i class="fas fa-car" style="margin-right:5px"></i>Véhicule</th>
                         <th><i class="fas fa-hotel" style="margin-right:5px"></i>Réservations (Hôtels)</th>
                         <th><i class="fas fa-road" style="margin-right:5px"></i>Km parcouru</th>
@@ -500,7 +696,28 @@
                 <tbody>
                 <%
                     List<TrajetVehiculeDTO> trajets = grp.getTrajets();
-                    if (trajets == null || trajets.isEmpty()) {
+                    List<TrajetVehiculeDTO> trajetsAffiches = new ArrayList<>();
+                    if (trajets != null) {
+                        trajetsAffiches.addAll(trajets);
+                        Collections.sort(trajetsAffiches, (t1, t2) -> {
+                            // Vehicule assigne en premier = vehicule avec l'heure de depart la plus tot.
+                            LocalDateTime d1 = t1.getHeureDepart();
+                            LocalDateTime d2 = t2.getHeureDepart();
+                            if (d1 != null && d2 != null && !d1.equals(d2)) {
+                                return d1.compareTo(d2);
+                            }
+                            if (d1 == null && d2 != null) {
+                                return 1;
+                            }
+                            if (d1 != null && d2 == null) {
+                                return -1;
+                            }
+
+                            return Integer.compare(t1.getVehiculeId(), t2.getVehiculeId());
+                        });
+                    }
+
+                    if (trajetsAffiches.isEmpty()) {
                 %>
                     <tr>
                         <td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">
@@ -509,22 +726,20 @@
                     </tr>
                 <%
                     } else {
-                        for (TrajetVehiculeDTO trajet : trajets) {
-
-                            String heureReservation = "--:--";
-                            if (trajet.getListeReservations() != null && !trajet.getListeReservations().isEmpty()) {
-                                java.time.LocalDateTime maxReservation = null;
-                                for (ReservationAffecteeDTO res : trajet.getListeReservations()) {
-                                    if (res != null && res.getDateHeureArrive() != null
-                                            && (maxReservation == null || res.getDateHeureArrive().isAfter(maxReservation))) {
-                                        maxReservation = res.getDateHeureArrive();
-                                    }
-                                }
-                                if (maxReservation != null) {
-                                    heureReservation = maxReservation.format(FMT_TIME);
-                                }
-                            }
+                        for (TrajetVehiculeDTO trajet : trajetsAffiches) {
+                            String groupKey = "g" + grp.getNumeroGroupe();
+                            String vehCardId = "veh-card-" + groupKey + "-v" + trajet.getVehiculeId();
+                            String heureReservation = trajet.getHeureDepart() != null ? trajet.getHeureDepart().format(FMT_TIME) : "--:--";
                             String heureRetour  = trajet.getHeureRetourPrevue() != null ? trajet.getHeureRetourPrevue().format(FMT_TIME) : "--:--";
+                            List<ReservationAffecteeDTO> resList = new ArrayList<>();
+                            if (trajet.getListeReservations() != null) {
+                                resList.addAll(trajet.getListeReservations());
+                                Collections.sort(resList,
+                                    Comparator.comparingInt(ReservationAffecteeDTO::getIdReservation)
+                                        .thenComparing(ReservationAffecteeDTO::getDateHeureArrive,
+                                            Comparator.nullsLast(Comparator.naturalOrder()))
+                                                .thenComparingInt(ReservationAffecteeDTO::getIdReservation));
+                            }
 
                             // Badge type carburant
                             String typeRaw   = trajet.getTypeVehicule() != null ? trajet.getTypeVehicule() : "";
@@ -563,7 +778,9 @@
                             <div class="vehicule-cell">
                                 <div class="vehicule-icon"><i class="fas fa-car"></i></div>
                                 <div>
-                                    <div class="vehicule-ref"><%= trajet.getVehiculeReference() %></div>
+                                    <div class="vehicule-ref">
+                                        <a href="#" class="detail-link" onclick="showDetailCard('<%= vehCardId %>'); return false;"><%= trajet.getVehiculeReference() %></a>
+                                    </div>
                                     <span class="vehicule-type <%= typeCss %>"><%= typeLabel %></span>
                                     &nbsp;
                                     <span style="font-size:0.78em;color:#94a3b8"><%= trajet.getCapacite() %> places</span>
@@ -575,18 +792,15 @@
                         <td>
                             <div class="hotels-list">
                             <%
-                                List<ReservationAffecteeDTO> resList = trajet.getListeReservations();
                                 if (resList != null) {
                                     for (ReservationAffecteeDTO res : resList) {
                                         String nomHotel = res.getNomHotel() != null ? res.getNomHotel() : "Hôtel ?";
                                         String heurePassage = res.getHeurePassage() != null ? res.getHeurePassage().format(FMT_TIME) : "";
+                                        String resCardId = "res-card-" + groupKey + "-v" + trajet.getVehiculeId() + "-r" + res.getIdReservation();
                             %>
                                 <span class="hotel-badge">
                                     <span class="ordre"><%= res.getOrdreVisite() %></span>
-                                    <%= nomHotel %>
-                                    <% if (!heurePassage.isEmpty()) { %>
-                                        <span class="passagers">(<%= heurePassage %>)</span>
-                                    <% } %>
+                                    <a href="#" class="detail-link" onclick="showDetailCard('<%= resCardId %>'); return false;">#<%= res.getIdReservation() %> - <%= nomHotel %></a>
                                     <span class="passagers"><i class="fas fa-user"></i>&nbsp;<%= res.getNbPassager() %></span>
                                 </span>
                             <%
@@ -623,6 +837,117 @@
                 </tbody>
             </table>
         </div>
+
+        <%
+            String groupKey = "g" + grp.getNumeroGroupe();
+        %>
+        <div id="group-detail-store-<%= groupKey %>" class="detail-data-store">
+                <%
+                    if (trajetsAffiches != null) {
+                        for (TrajetVehiculeDTO trajetCard : trajetsAffiches) {
+                            String vehCardId = "veh-card-" + groupKey + "-v" + trajetCard.getVehiculeId();
+                            String typeRawCard = trajetCard.getTypeVehicule() != null ? trajetCard.getTypeVehicule() : "";
+                            String typeLabelCard;
+                            switch (typeRawCard.toUpperCase()) {
+                                case "D":
+                                case "DIESEL":
+                                    typeLabelCard = "Diesel";
+                                    break;
+                                case "ES":
+                                case "ESSENCE":
+                                    typeLabelCard = "Essence";
+                                    break;
+                                case "H":
+                                case "HYBRIDE":
+                                    typeLabelCard = "Hybride";
+                                    break;
+                                case "EL":
+                                    typeLabelCard = "Électrique";
+                                    break;
+                                default:
+                                    typeLabelCard = typeRawCard;
+                            }
+                            String depCard = trajetCard.getHeureDepart() != null ? trajetCard.getHeureDepart().format(FMT_TIME) : "--:--";
+                            String retCard = trajetCard.getHeureRetourPrevue() != null ? trajetCard.getHeureRetourPrevue().format(FMT_TIME) : "--:--";
+                        %>
+                    <div id="<%= vehCardId %>" class="details-card detail-card-pane">
+                        <div class="details-title"><i class="fas fa-circle-info" style="margin-right:6px"></i>Véhicule <%= trajetCard.getVehiculeReference() %></div>
+                        <div class="details-grid">
+                            <div><span class="detail-label">ID:</span><%= trajetCard.getVehiculeId() %></div>
+                            <div><span class="detail-label">Référence:</span><%= trajetCard.getVehiculeReference() != null ? trajetCard.getVehiculeReference() : "-" %></div>
+                            <div><span class="detail-label">Type:</span><%= typeLabelCard %></div>
+                            <div><span class="detail-label">Capacité:</span><%= trajetCard.getCapacite() %></div>
+                            <div><span class="detail-label">Places utilisées:</span><%= trajetCard.getPlacesUtilisees() %></div>
+                            <div><span class="detail-label">Places disponibles:</span><%= trajetCard.getPlacesDisponibles() %></div>
+                            <div><span class="detail-label">Départ:</span><%= depCard %></div>
+                            <div><span class="detail-label">Retour aéroport:</span><%= retCard %></div>
+                        </div>
+                    </div>
+                <%
+                        }
+                    }
+                %>
+                <%
+                    if (trajetsAffiches != null) {
+                        for (TrajetVehiculeDTO trajetCard : trajetsAffiches) {
+                            List<ReservationAffecteeDTO> reservationsCard = new ArrayList<>();
+                            if (trajetCard.getListeReservations() != null) {
+                                reservationsCard.addAll(trajetCard.getListeReservations());
+                                Collections.sort(reservationsCard,
+                                    Comparator.comparingInt(ReservationAffecteeDTO::getIdReservation)
+                                        .thenComparing(ReservationAffecteeDTO::getDateHeureArrive,
+                                                        Comparator.nullsLast(Comparator.naturalOrder()))
+                                                .thenComparingInt(ReservationAffecteeDTO::getIdReservation));
+                                for (ReservationAffecteeDTO d : reservationsCard) {
+                                    String resCardId = "res-card-" + groupKey + "-v" + trajetCard.getVehiculeId() + "-r" + d.getIdReservation();
+                                    String dArrivee = d.getDateHeureArrive() != null ? d.getDateHeureArrive().format(FMT_TIME) : "--:--";
+                                    String dPassage = d.getHeurePassage() != null ? d.getHeurePassage().format(FMT_TIME) : "--:--";
+                                    String dClient = d.getClientName() != null && !d.getClientName().isBlank()
+                                            ? d.getClientName()
+                                            : (d.getIdClient() != null ? d.getIdClient() : "-");
+                                    String vehRef = trajetCard.getVehiculeReference() != null ? trajetCard.getVehiculeReference() : "-";
+                %>
+                    <div id="<%= resCardId %>" class="details-card detail-card-pane">
+                        <div class="details-title"><i class="fas fa-receipt" style="margin-right:6px"></i>Réservation #<%= d.getIdReservation() %></div>
+                        <div class="details-grid">
+                            <div><span class="detail-label">Client:</span><%= dClient %></div>
+                            <div><span class="detail-label">Id client:</span><%= d.getIdClient() != null ? d.getIdClient() : "-" %></div>
+                            <div><span class="detail-label">Hôtel:</span><%= d.getNomHotel() != null ? d.getNomHotel() : "-" %></div>
+                            <div><span class="detail-label">Passagers:</span><%= d.getNbPassager() %></div>
+                            <div><span class="detail-label">Heure arrivée:</span><%= dArrivee %></div>
+                            <div><span class="detail-label">Heure passage:</span><%= dPassage %></div>
+                            <div><span class="detail-label">Ordre visite:</span><%= d.getOrdreVisite() %></div>
+                            <div><span class="detail-label">Distance segment:</span><%= String.format("%.1f", d.getDistance()) %> km</div>
+                            <div><span class="detail-label">Véhicule assigné:</span><%= vehRef %></div>
+                        </div>
+                    </div>
+                <%
+                                }
+                            }
+                        }
+                    }
+                %>
+        </div>
+
+        <% if (grp.getReservationsNonAffectees() != null && !grp.getReservationsNonAffectees().isEmpty()) { %>
+        <div class="unassigned-box">
+            <div class="unassigned-title">
+                <i class="fas fa-triangle-exclamation" style="margin-right:6px"></i>
+                Réservations non affectées dans ce passage (reconsidérées au groupement suivant)
+            </div>
+            <div class="unassigned-list">
+                <% for (ReservationAffecteeDTO na : grp.getReservationsNonAffectees()) { %>
+                <span class="unassigned-item">
+                    #<%= na.getIdReservation() %>
+                    <% if (na.getNomHotel() != null) { %>
+                        - <%= na.getNomHotel() %>
+                    <% } %>
+                    (<%= na.getNbPassager() %> pass.)
+                </span>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
     </div><!-- /.groupement-card -->
 
     <%
@@ -631,5 +956,51 @@
     %>
 
 </div><!-- /.container -->
+
+<div id="floatingDetailOverlay" class="floating-overlay" onclick="closeFloatingDetails()"></div>
+<div id="floatingDetailPanel" class="floating-detail-panel">
+    <div class="floating-header">
+        <div id="floatingDetailTitle" class="floating-title">Détail</div>
+        <button type="button" class="floating-close" onclick="closeFloatingDetails()" aria-label="Fermer">
+            <i class="fas fa-xmark"></i>
+        </button>
+    </div>
+    <div id="floatingDetailBody" class="floating-body"></div>
+</div>
+
+<script>
+function showDetailCard(cardId) {
+    var target = document.getElementById(cardId);
+    if (!target) {
+        return;
+    }
+
+    var title = cardId.indexOf('veh-card-') === 0 ? 'Détails véhicule' : 'Détails réservation';
+
+    var cloned = target.cloneNode(true);
+    cloned.style.display = 'block';
+
+    var body = document.getElementById('floatingDetailBody');
+    var titleNode = document.getElementById('floatingDetailTitle');
+    var panel = document.getElementById('floatingDetailPanel');
+    var overlay = document.getElementById('floatingDetailOverlay');
+
+    titleNode.textContent = title;
+    body.innerHTML = '';
+    body.appendChild(cloned);
+
+    overlay.style.display = 'block';
+    panel.style.display = 'block';
+}
+
+function closeFloatingDetails() {
+    var panel = document.getElementById('floatingDetailPanel');
+    var overlay = document.getElementById('floatingDetailOverlay');
+    var body = document.getElementById('floatingDetailBody');
+    panel.style.display = 'none';
+    overlay.style.display = 'none';
+    body.innerHTML = '';
+}
+</script>
 </body>
 </html>

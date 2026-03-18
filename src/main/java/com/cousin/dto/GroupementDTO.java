@@ -17,9 +17,12 @@ public class GroupementDTO {
     private List<TrajetVehiculeDTO> trajets;  // Un trajet par véhicule utilisé
     private int totalReservations;
     private int totalPassagers;
+    private List<ReservationAffecteeDTO> reservationsNonAffectees;
+    private String departInfo;
 
     public GroupementDTO() {
         this.trajets = new ArrayList<>();
+        this.reservationsNonAffectees = new ArrayList<>();
     }
 
     public int getNumeroGroupe() {
@@ -76,5 +79,21 @@ public class GroupementDTO {
 
     public void setTotalPassagers(int totalPassagers) {
         this.totalPassagers = totalPassagers;
+    }
+
+    public List<ReservationAffecteeDTO> getReservationsNonAffectees() {
+        return reservationsNonAffectees;
+    }
+
+    public void setReservationsNonAffectees(List<ReservationAffecteeDTO> reservationsNonAffectees) {
+        this.reservationsNonAffectees = reservationsNonAffectees;
+    }
+
+    public String getDepartInfo() {
+        return departInfo;
+    }
+
+    public void setDepartInfo(String departInfo) {
+        this.departInfo = departInfo;
     }
 }

@@ -1,6 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ page import="java.util.List" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="java.util.HashMap" %>
 <%@ page import="com.cousin.model.Vehicule" %>
+<%@ page import="com.cousin.model.Hotel" %>
+<%@ page import="com.cousin.model.Distance" %>
 
 <!DOCTYPE html>
 <html>
@@ -63,6 +67,98 @@
             <tr>
                 <td colspan="5">Aucun vehicule</td>
             </tr>
+            <%
+                }
+            %>
+            </tbody>
+        </table>
+
+        <h3 style="margin-top:24px;">Distances Aéroport et Hôtels</h3>
+        <%
+            List<Hotel> hotels = (List<Hotel>) request.getAttribute("hotels");
+            List<Distance> distances = (List<Distance>) request.getAttribute("distances");
+            Map<Integer, String> hotelNames = new HashMap<>();
+            if (hotels != null) {
+                for (Hotel h : hotels) {
+                    hotelNames.put(h.getIdHotel(), h.getNom());
+                }
+            }
+        %>
+
+        <h4> Distances entre l'aéroport et les hôtels</h4>
+        <table class="table" border="1" cellpadding="6" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Départ</th>
+                    <th>Arrivée</th>
+                    <th>Distance (km)</th>
+                </tr>
+            </thead>
+            <tbody>
+            <%
+                boolean hasAirportDistance = false;
+                if (distances != null) {
+                    for (Distance d : distances) {
+                        boolean aeroportFrom = d.getIdHotelFrom() == 0;
+                        boolean aeroportTo = d.getIdHotelTo() == 0;
+                        if (aeroportFrom || aeroportTo) {
+                            hasAirportDistance = true;
+                            int hotelId = aeroportFrom ? d.getIdHotelTo() : d.getIdHotelFrom();
+                            String hotelName = hotelNames.getOrDefault(hotelId, "Hôtel #" + hotelId);
+            %>
+                <tr>
+                    <td><%= aeroportFrom ? "AEROPORT" : hotelName %></td>
+                    <td><%= aeroportFrom ? hotelName : "AEROPORT" %></td>
+                    <td><%= d.getValeur() %></td>
+                </tr>
+            <%
+                        }
+                    }
+                }
+                if (!hasAirportDistance) {
+            %>
+                <tr>
+                    <td colspan="3">Aucune distance Aéroport-Hôtel</td>
+                </tr>
+            <%
+                }
+            %>
+            </tbody>
+        </table>
+
+        <h4 style="margin-top:16px;"> Distances entre hôtels</h4>
+        <table class="table" border="1" cellpadding="6" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Hôtel départ</th>
+                    <th>Hôtel arrivée</th>
+                    <th>Distance (km)</th>
+                </tr>
+            </thead>
+            <tbody>
+            <%
+                boolean hasHotelDistance = false;
+                if (distances != null) {
+                    for (Distance d : distances) {
+                        if (d.getIdHotelFrom() > 0 && d.getIdHotelTo() > 0) {
+                            hasHotelDistance = true;
+                            String fromName = hotelNames.getOrDefault(d.getIdHotelFrom(), "Hôtel #" + d.getIdHotelFrom());
+                            String toName = hotelNames.getOrDefault(d.getIdHotelTo(), "Hôtel #" + d.getIdHotelTo());
+            %>
+                <tr>
+                    <td><%= fromName %></td>
+                    <td><%= toName %></td>
+                    <td><%= d.getValeur() %></td>
+                </tr>
+            <%
+                        }
+                    }
+                }
+                if (!hasHotelDistance) {
+            %>
+                <tr>
+                    <td colspan="3">Aucune distance Hôtel-Hôtel</td>
+                </tr>
             <%
                 }
             %>
