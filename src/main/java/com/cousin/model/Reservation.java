@@ -11,6 +11,9 @@ public class Reservation {
     private Integer clientId;
     private Client client;
     private String statut; // PENDING, ASSIGNED, CANCELLED
+    // Ajout pour gestion séparation passagers
+    private int nbrPassagersAssignes;
+    private String statutReservation; // NON_AFFECTEE, PARTIELLEMENT_AFFECTEE, COMPLETEMENT_AFFECTEE
 
     public Reservation() {
     }
@@ -21,6 +24,22 @@ public class Reservation {
         this.idClient = idClient;
         this.nbPassager = nbPassager;
         this.hotel = hotel;
+        this.nbrPassagersAssignes = 0;
+        this.statutReservation = "NON_AFFECTEE";
+    }
+
+    public int getNbrPassagersAssignes() {
+        return nbrPassagersAssignes;
+    }
+    public void setNbrPassagersAssignes(int nbrPassagersAssignes) {
+        this.nbrPassagersAssignes = nbrPassagersAssignes;
+    }
+
+    public String getStatutReservation() {
+        return statutReservation;
+    }
+    public void setStatutReservation(String statutReservation) {
+        this.statutReservation = statutReservation;
     }
 
     public int getIdReservation() {
