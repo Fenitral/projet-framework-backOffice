@@ -9,7 +9,9 @@
     boolean isPlanification = currentPath.startsWith("/planification") || currentPath.startsWith("/affichageResultats");
     boolean isVehiculeList = currentPath.startsWith("/vehicule/list");
     boolean isVehiculeForm = currentPath.startsWith("/vehicule/form");
-    boolean isReservation = currentPath.startsWith("/reservation");
+    boolean isReservation = "/".equals(currentPath) || "".equals(currentPath) || currentPath.startsWith("/reservation/form");
+    boolean isReservationList = currentPath.startsWith("/reservation/list");
+    boolean isHotelList = currentPath.startsWith("/hotel/list");
     boolean isGroupement = currentPath.startsWith("/groupement");
 %>
 
@@ -142,9 +144,9 @@
         <ul>
             <li><a href="<%= contextPath %>/" class="nav-link <%= isHome ? "active" : "" %>"><i class="fas fa-home"></i> Accueil</a></li>
             <li><a href="<%= contextPath %>/planification" class="nav-link <%= isPlanification ? "active" : "" %>"><i class="fas fa-calendar-alt"></i> Planification</a></li>
-            <li><a href="<%= contextPath %>/vehicule/list" class="nav-link <%= isVehiculeList ? "active" : "" %>"><i class="fas fa-car"></i> Liste Véhicules</a></li>
-            <li><a href="<%= contextPath %>/vehicule/form" class="nav-link <%= isVehiculeForm ? "active" : "" %>"><i class="fas fa-plus-circle"></i> Ajouter Véhicule</a></li>
-            <li><a href="<%= contextPath %>/reservation/form" class="nav-link <%= isReservation ? "active" : "" %>"><i class="fas fa-calendar-plus"></i> Nouvelle Réservation</a></li>
+            <li><a href="<%= contextPath %>/vehicule/list" class="nav-link <%= isVehiculeList ? "active" : "" %>"><i class="fas fa-car"></i>Véhicules</a></li>
+            <li><a href="<%= contextPath %>/reservation/list" class="nav-link <%= isReservationList ? "active" : "" %>"><i class="fas fa-list"></i>Réservations</a></li>
+            <li><a href="<%= contextPath %>/hotel/list" class="nav-link <%= isHotelList ? "active" : "" %>"><i class="fas fa-hotel"></i>Hôtels</a></li>
             <li><a href="<%= contextPath %>/groupement" class="nav-link <%= isGroupement ? "active" : "" %>"><i class="fas fa-car-side"></i> Groupement des voitures</a></li>
         </ul>
     </nav>

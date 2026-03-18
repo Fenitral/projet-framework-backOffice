@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +36,63 @@ public class TrajetExecutionRepository {
             }
         }
         return 0;
+    }
+
+    public boolean existsByVehicleDateAndHours(Integer vehiculeId,
+                                               LocalDate dateService,
+                                               LocalDateTime heureDepart,
+                                               LocalDateTime heureRetour) throws SQLException {
+        String sql = "SELECT 1 FROM local.trajet_execution " +
+                "WHERE vehicule_id = ? AND date_service = ? AND heure_depart = ? AND heure_retour = ? " +
+                "LIMIT 1";
+
+        try (Connection connection = DbConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, vehiculeId);
+            statement.setDate(2, java.sql.Date.valueOf(dateService));
+            statement.setTimestamp(3, java.sql.Timestamp.valueOf(heureDepart));
+            statement.setTimestamp(4, java.sql.Timestamp.valueOf(heureRetour));
+
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    public Integer findTrajetIdByDateAndHours(LocalDate dateService,
+                                              LocalDateTime heureDepart,
+                                              LocalDateTime heureRetour) throws SQLException {
+        String sql = "SELECT trajet_id FROM local.trajet_execution " +
+                "WHERE date_service = ? AND heure_depart = ? AND heure_retour = ? " +
+                "ORDER BY created_at DESC, trajet_id DESC LIMIT 1";
+
+        try (Connection connection = DbConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setDate(1, java.sql.Date.valueOf(dateService));
+            statement.setTimestamp(2, java.sql.Timestamp.valueOf(heureDepart));
+            statement.setTimestamp(3, java.sql.Timestamp.valueOf(heureRetour));
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("trajet_id");
+                }
+            }
+        }
+        return null;
+    }
+
+    public void updateVehicleByTrajetId(Integer trajetId, Integer vehiculeId) throws SQLException {
+        String sql = "UPDATE local.trajet_execution SET vehicule_id = ? WHERE trajet_id = ?";
+
+        try (Connection connection = DbConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, vehiculeId);
+            statement.setInt(2, trajetId);
+            statement.executeUpdate();
+        }
     }
 
     public int countTrajetsByVehicleAndDate(Integer vehiculeId, LocalDate dateService) throws SQLException {

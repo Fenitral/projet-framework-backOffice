@@ -1,0 +1,85 @@
+TODO SPRINT 5 - PLAN DE TRAVAIL (2 DEVS)
+
+Tina: (Back-end + Base de donnees)
+1. [BDD] Definir le nouveau schema Sprint 5.
+2. [BDD] Creer les migrations SQL Sprint 5 (versionnees).
+3. [BDD] Adapter les scripts de seed/reinit au nouveau schema.
+4. [Service] Implementer l'algorithme de calcul des departs:
+    - entree: reservations du jour triees par heure d'arrivee en tenant compte du temps d'attente
+    - sortie: groupes de reservations avec heure de depart calculee
+        - classe/fichier: AssignationService.java
+        - methodes a ajouter/modifier:
+            - planifier(LocalDate date, LocalDateTime heureDepart)
+            - regrouperReservationsParFenetre30Min(List<Reservation>) [a ajouter]
+            - calculerHeureDepartGroupe(List<ReservationAffecteeDTO>) [a ajouter]
+            - trierReservationsParHeureArrivee(List<Reservation>) [a ajouter]
+5. [Service] Calculer les champs necessaires a l'ecran:
+    - heure depart
+    - vehicule assigne
+    - liste reservations (avec hotel)
+    - km parcourue
+    - heure de retour aeroport
+        - classes/fichiers:
+            - AssignationService.java
+            - TrajetVehiculeDTO.java
+            - ReservationAffecteeDTO.java
+            - PlanificationDTO.java
+        - methodes a ajouter/modifier:
+            - calculerDistanceTotaleVehicule(TrajetVehiculeDTO)
+            - calculerDistanceTrajetReelle(TrajetVehiculeDTO)
+            - calculerHeureRetour(TrajetVehiculeDTO)
+            - buildPlanificationLignes(...) [a ajouter]
+6. [Tests] Ajouter des tests unitaires sur les cas:
+    - une reservation seule
+    - plusieurs reservations dans la fenetre de 30 min
+    - reservation hors fenetre -> nouveau depart
+        - fichier test a creer: AssignationServiceTest.java
+        - methodes de test a creer:
+            - planifier_uneReservation_seulGroupe()
+            - planifier_plusieursReservationsDans30Min_memeDepart()
+            - planifier_reservationHorsFenetre_nouveauDepart()
+
+Fenitra: (Front-end + Integration)
+1. [UI] Adapter la page de planification .
+        - fichier a modifier: planification.jsp
+        - elements a ajouter:
+            - tableau de resultat (ou include vers affichageResultats.jsp)
+            - bloc "Aucune planification" si liste vide
+2. [UI] Afficher le tableau avec colonnes:
+    - Heure depart
+    - Vehicule
+    - Liste reservations (avec hotel)
+    - Km parcourue
+    - Heure retour aeroport
+        - fichier a modifier: affichageResultats.jsp
+        - bloc principal a ajuster: table/tr par trajet
+        - champs utilises:
+            - trajet.getHeureDepart()
+            - trajet.getVehiculeReference()
+            - trajet.getListeReservations()
+            - trajet.getDistanceParcourue()
+            - trajet.getHeureRetourPrevue()
+3. [UI] Ajouter un format d'affichage lisible pour les heures et les listes de reservations.
+        - fichier a modifier: affichageResultats.jsp
+        - format heure: DateTimeFormatter.ofPattern("HH:mm")
+        - extraction liste reservations: boucle sur trajet.getListeReservations()
+4. [Controller] Brancher la page au controller/service qui fournit les donnees calculees.
+        - fichier a modifier: AssignationController.java
+        - methodes a utiliser/modifier:
+            - showAffichageResultats(String dateStr, String heureDepart)
+            - getPlanification(String dateStr, String heureDepart)
+        - attributs ModelView attendus:
+            - planification
+            - datePlanification
+            - heureDepart
+5. [Integration] Gerer les cas sans donnees (message "Aucune planification").
+        - fichiers a modifier:
+            - affichageResultats.jsp
+            - AssignationController.java
+        - regle:
+            - si planification == null ou planification.getTrajets().isEmpty(), afficher "Aucune planification"
+
+
+
+
+

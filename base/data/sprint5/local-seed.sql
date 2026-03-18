@@ -1,4 +1,3 @@
-BEGIN;
 
 INSERT INTO local.hotel (nom, aeroport, is_aeroport) VALUES
     ('Aeroport principal', 'IVATO', TRUE),
@@ -57,11 +56,11 @@ INSERT INTO local.token_expiration (token, expiration) VALUES
     ('550e8400-e29b-41d4-a716-446655440000', NOW() + INTERVAL '24 hours'),
     ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', NOW() + INTERVAL '48 hours');
 
--- Fenêtres de temps d'attente (groupage de réservations par 30 min)
-INSERT INTO local.temps_attente_window (departure_date, window_start, window_end, minutes_attente) VALUES
-    ('2026-03-16', '09:00:00', '09:30:00', 30),
-    ('2026-03-16', '09:30:00', '10:00:00', 30),
-    ('2026-03-16', '10:00:00', '10:30:00', 30);
+-- -- Fenêtres de temps d'attente (groupage de réservations par 30 min)
+-- INSERT INTO local.temps_attente_window (departure_date, window_start, window_end, minutes_attente) VALUES
+--     ('2026-03-16', '09:00:00', '09:30:00', 30),
+--     ('2026-03-16', '09:30:00', '10:00:00', 30),
+--     ('2026-03-16', '10:00:00', '10:30:00', 30);
 
 -- Planifications complètes (résultats de regroupement et assignation)
 INSERT INTO local.planification (departure_date, parametre_id, heure_depart, heure_retour_aeroport, description) VALUES

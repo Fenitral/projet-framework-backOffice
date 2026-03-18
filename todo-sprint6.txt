@@ -1,0 +1,117 @@
+==============================
+DETAIL TODO SPRINT6 
+==============================
+
+OBJECTIF METIER
+- Regrouper les reservations par fenetres fixes de 30 minutes basees sur la premiere reservation de chaque fenetre.
+- Si plusieurs vehicules sont candidats, choisir en priorite celui qui a effectue le moins de trajets.
+- Definition d'un trajet: Aeroport -> Hotels du groupe -> Aeroport (1 tour complet = 1 trajet).
+- Une reservation non assignee dans une fenetre doit etre reconsideree automatiquement dans la fenetre suivante.
+
+explications des termes:
+Une fenêtre =un groupe de réservations dans un intervalle de 30 minutes
+Une fenêtre de temps = un intervalle de temps fixé
+Dans notre cas : Une fenêtre = 30 minutes
+
+
+BACK-END
+
+1) BDD - Evolution schema
+- Ajouter une colonne compteur de trajets sur vehicule (ex: nb_trajets_effectues INT DEFAULT 0) OU creer une table historique de trajets.
+- Option recommandee: table historique (plus robuste):
+    - trajet_execution(id, vehicule_id, date_service, heure_depart, heure_retour, distance_totale)
+    - permet d'auditer les decisions et de recalculer les stats.
+- Ne pas stocker fenetre_debut/fenetre_fin en base: les fenetres sont dynamiques (dependantes de l'heure de la premiere reservation).
+- Ce qui est stocke en base pour l'intervalle: la duree TA (temps_attente_groupement) dans la table parametre.
+- Ajouter index necessaires:
+    - reservation(dateheurearrive)
+    - trajet_execution(date_service, vehicule_id)
+- Prevoir script de reset test par date (suppression ciblee des trajets/assignations d'une date).
+
+2) BDD - Regles de donnees
+- La fenetre est calculee a l'execution (pas persist ee). Regle: fenetre_fin = fenetre_debut + TA, avec TA lu depuis parametre.
+- Conserver les reservations non assignees avec statut explicite (PENDING/NON_ASSIGNEE) pour re-traitement.
+- Si table historique: increment logique du nombre de trajets derive de l'historique (COUNT) au lieu d'un simple champ mutable.
+
+3) Metier - Decoupage temporel
+- Parcourir les reservations du jour triees ASC par dateHeureArrive.
+- Construire les fenetres a partir de la premiere reservation non traitee:
+    - fenetre_debut = heure de cette premiere reservation
+    - fenetre_fin = fenetre_debut + 30 min
+- Important: meme si la premiere reservation ne trouve pas de vehicule, la fenetre reste [debut, debut+30].
+
+4) Metier - Selection vehicule (nouvelle priorite)
+- Criteres de selection a appliquer dans l'ordre:
+    1. Capacite suffisante
+    2. Vehicule disponible a l'heure de depart de la fenetre (heure retour precedente <= heure depart)
+    3. Nombre de trajets effectues minimal (critere principal demande)
+    4. Puis tie-break existant (ex: type, places vides, etc.)
+- Mettre a jour l'etat vehicule apres affectation:
+    - heure_retour_calculee
+    - compteur de trajets +1 (ou insertion dans historique)
+
+5) Metier - Reconsideration des non assignees
+- A la fin d'une fenetre, collecter les reservations non assignees.
+- Les reinjecter dans la fenetre suivante avant/avec les nouvelles reservations de cette fenetre.
+- Definir politique d'ordre recommandee:
+    - priorite aux plus anciennes non assignees, puis nouvelles reservations par heure ASC.
+- Definir condition d'arret:
+    - fin de journee ou plus aucun vehicule disponible.
+
+6) Metier - Calculs horaires
+- Determiner heure de depart de groupe selon regle actuelle (derniere heure de reservation du groupe retenu).
+- Calculer heure de retour avec:
+    - temps trajet uniquement (distance / vitesse)
+- Enregistrer/systematiser cette heure pour savoir exactement quand un vehicule redevient disponible.
+
+7) Metier - API/Service contracts
+- Exposer dans DTO de groupement:
+    - fenetre_debut, fenetre_fin
+    - reservations_non_assignees_reportees
+    - criteres_selection_appliques (option debug)
+- Adapter endpoints de planification/groupement si necessaire pour retourner ces infos.
+
+8) Tests back-end (obligatoire)
+- Cas 1: deux vehicules candidats -> selection de celui avec moins de trajets.
+- Cas 2: reservation non assignee en fenetre N -> reconsideree en fenetre N+1.
+- Cas 3: premiere reservation non assignee mais fenetre conservee.
+- Cas 4: disponibilite vehicule basee sur heure de retour (pas juste capacite).
+- Cas 5: tie-break stable quand nb_trajets egal.
+
+
+FRONT-END (integration / affichage)
+
+1) Ecran groupement - Informations fenetre
+- Afficher clairement pour chaque groupe:
+    - Fenetre: HH:mm - HH:mm
+    - Heure de depart du groupe
+- Ajouter badge/label "Reservations reporte es" si le groupe contient des non assignees de la fenetre precedente.
+
+2) Ecran groupement - Transparence du choix vehicule
+- Dans la ligne vehicule, afficher "Nb trajets: X" pour justifier le choix.
+- Option tooltip: "Choisi car moins de trajets" quand applicable.
+
+3) Ecran groupement - Non assignees
+- Ajouter section dediee "Non assignees / Reportees" avec:
+    - reservation
+    - heure reservation
+    - motif (capacite, indisponibilite horaire, etc.)
+    - fenetre de report cible
+
+4) Filtre heure (deja ajoute) - extension utile
+- Conserver le filtre actuel par heure appartenant a un intervalle.
+- Ajouter en plus un filtre "Afficher seulement groupes avec report" (checkbox).
+
+-------------------------------------------------------------------------------------------
+
+1-choix entre les voitures:
+on choisit le vehicule dont il a fait le moins de trajet c'est a dire, on considere le nombre de trajet
+
+definition de 1 trajet:c'est 1 tour c'est-a-dire: partant de l'aeroport vers l'hotel et revient vers l'aeroport
+
+2-si une reservation n'a pas pu trouver de voiture , on reconsidere cette reservation dans le prochain intervalle de temps:
+c-a-d on lui recherche a nouveau de voiture 
+
+remarque: l'heure ou on compte l'intervalle est a partir du premier reservation: c'est a dire c'est cette date qu'on commence qu'on 
+additionne avec 30min ; meme si cette reservation ne trouve pas de voiture : c-a-d sera non-assignee, c'est atoujours a partir de 
+cette heure qu'on compte le 30 min.
