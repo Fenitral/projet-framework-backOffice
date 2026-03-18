@@ -7,6 +7,9 @@ public class Vehicule {
     private String typeVehicule;
     private String statut;           // DISPONIBLE, ASSIGNE, MAINTENANCE
     private String lieuActuel;       // Localisation actuelle du véhicule
+    // Ajout pour gestion dynamique de l'affectation
+    private int placesDisponibles;
+    private int nbTrajets;
 
     public Vehicule() {
     }
@@ -17,6 +20,22 @@ public class Vehicule {
         this.nbPlace = nbPlace;
         this.typeVehicule = typeVehicule;
         this.statut = "DISPONIBLE"; // Par défaut
+        this.placesDisponibles = nbPlace;
+        this.nbTrajets = 0;
+    }
+
+    public int getPlacesDisponibles() {
+        return placesDisponibles;
+    }
+    public void setPlacesDisponibles(int placesDisponibles) {
+        this.placesDisponibles = placesDisponibles;
+    }
+
+    public int getNbTrajets() {
+        return nbTrajets;
+    }
+    public void setNbTrajets(int nbTrajets) {
+        this.nbTrajets = nbTrajets;
     }
 
     public int getIdVehicule() {

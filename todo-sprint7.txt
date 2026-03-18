@@ -1,0 +1,118 @@
+================================================================================
+BACKEND - Responsable: Ange (ETU003368)
+================================================================================
+ BASE DE DONNÉES
+
+    ☐ Modifier TABLE RESERVATION:
+        - Ajouter: nbr_passagers_assignes (INTEGER DEFAULT 0)
+        - Ajouter: statut_reservation (VARCHAR: 'NON_AFFECTEE', 'PARTIELLEMENT_AFFECTEE', 'COMPLETEMENT_AFFECTEE')
+       
+    ☐ Créer TABLE AFFECTATION_PASSAGER:
+        - id (BIGINT PK AUTO_INCREMENT)
+        - reservation_id (FK)
+        - vehicule_id (FK)
+        - nb_passagers_assignes (INT)
+        - position_visite (INT) -- ordre d'arrêt du véhicule
+        - heure_arrivee_prevue (TIME)
+        - heure_depart_prevue (TIME)
+
+    ☐ Script de migration SQL
+
+
+BACKEND
+
+    ☐ Créer DTOs:
+        - PassagerAssignationDTO (reservationId, nombrePassagers, positionVisite, lieuVisite)
+        - AllocationReservationDTO (reservationId, nombrePassagersTotal, nombrePassagersAssignes, listeAffectations, nombrePassagersNonAssignes, prioriteClient)
+
+    ☐ Créer ReservationAllocationService:
+    
+        public List<AllocationReservationDTO> prepareReservationsForAllocation(LocalDate date)
+         Récupérer réservations du jour + TRIER par : nb_passagers DESC → nom client ASC
+         (Les réservations avec PLUS DE PASSAGERS sont traitées en PREMIER)
+        
+        public void allocatePassengersToVehicles(List<AllocationReservationDTO> reservations, List<Vehicule> vehicules)
+         ALGORITHME: Pour chaque réservation (gros groupes d'abord):
+           - Chercher véhicules avec places dispo [VOIR: findCandidates()]
+           - Assigner MIN(passagers_restants, places_dispo)
+           - Remplir le véhicule AU MAX avant passer au suivant
+           - Créer entrée AFFECTATION_PASSAGER
+           - Répéter jusqu'à 0 passagers restants ou 0 véhicule dispo
+        
+        public void calculateTravelTimesForVehicle(VehiculeAllocationState vehicule)
+         Utiliser DistanceService + ParametreService pour calculer horaires
+         Format: Aéroport → Hôtel1 → Hôtel2 → ... → Aéroport
+
+    ☐ Modifier AssignationController.planifier():
+        - Appeler prepareReservationsForAllocation()
+        - Appeler allocatePassengersToVehicles()
+        - Retourner PlanificationDTO avec affectations MULTIPLES (split par véhicule)
+
+
+ RÈGLES À RESPECTER
+
+    ✓ ORDRE DE TRI: Réservations avec LE PLUS DE PASSAGERS d'abord
+       (ex: R1=8 passagers AVANT R2=4 passagers)
+    ✓ Pour chaque réservation: REMPLIR LE VÉHICULE AU MAXIMUM avant passer au suivant
+       (ex: si R1=8 et V1=6 dispo → assigner 6 à V1, puis chercher V2 pour les 2 restants)
+    ✓ Sélection du véhicule (par ordre de priorité):
+       1. Capacité restante la plus proche (remplir avant de changer)
+       2. Si égalité → choisir le MOINS DE TRAJETS (moins de réservations assignées)
+       3. Si égalité → Diesel prioritaire
+       4. Si égalité → aléatoire en dernier recours
+    ✓ SI passagers_restants > capacité_restante_partout = PARTIEL (en attente)
+
+
+================================================================================
+FRONTEND - Responsable: Fenitra (ETU003245)
+================================================================================
+
+📄 MODIFIER: affichageResultats.jsp
+
+    ☐ SECTION TRAJETS "Véhicules" (VERT):
+        Boucle sur chaque véhicule avec ses affectations multiples
+        
+        Afficher:
+        - Véhicule: marque, modele, immatriculation
+        - Capacité: places utilisées / places totales (avec %)
+        - Horaires: heure départ, heure retour
+        - Pour CHAQUE arrêt du véhicule:
+          └─ Hôtel | Nb passagers | Heure arrivée | Heure départ | Réservation ID
+
+
+    ☐ SECTION STATISTIQUES (BLEU):
+        Résumé rapide en haut
+        
+        Afficher:
+        - Total réservations
+        - Complètement affectées (✓ vert)
+        - Partiellement affectées (⚠ orange)
+        - Non affectées (✗ rouge)
+        - Taux d'utilisation moyen %
+
+
+    ☐ SECTION RÉSERVATIONS PARTIELLES (ORANGE):
+        Pour chaque réservation avec passagers en attente
+        
+        Afficher:
+        - Réservation ID
+        - Total passagers / Assignés / EN ATTENTE
+        - Liste des véhicules qui ont reçu de cette réservation
+
+
+    ☐ SECTION RÉSERVATIONS NON AFFECTÉES (ROUGE):
+        Pour chaque réservation sans aucun passager assigné
+        
+        Afficher:
+        - Réservation ID
+        - Nombre total de passagers bloqués
+        - Message: "À traiter manuellement"
+
+
+TESTS
+
+    ☐ TestCase 1: Tri par priorité (3 réservations, différentes priorités)
+    ☐ TestCase 2: Allocation complète (V1: 10 places, R1: 6, R2: 4)
+    ☐ TestCase 3: Allocation partielle (V1: 5 places, R1: 8 passagers)
+    ☐ TestCase 4: Exemple Sprint7 (V1: 8, V2: 3 | R1: 6, R2: 4, R3: 3)
+    ☐ TestCase 5: Pas de véhicule dispo
