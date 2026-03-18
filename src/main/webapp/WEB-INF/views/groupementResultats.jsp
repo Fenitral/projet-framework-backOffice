@@ -686,7 +686,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th><i class="fas fa-calendar-check" style="margin-right:5px"></i>Heure départ voiture</th>
+                        <th><i class="fas fa-calendar-check" style="margin-right:5px"></i>Heure arrivée (vol/voiture)</th>
                         <th><i class="fas fa-car" style="margin-right:5px"></i>Véhicule</th>
                         <th><i class="fas fa-hotel" style="margin-right:5px"></i>Réservations (Hôtels)</th>
                         <th><i class="fas fa-road" style="margin-right:5px"></i>Km parcouru</th>
@@ -729,7 +729,6 @@
                         for (TrajetVehiculeDTO trajet : trajetsAffiches) {
                             String groupKey = "g" + grp.getNumeroGroupe();
                             String vehCardId = "veh-card-" + groupKey + "-v" + trajet.getVehiculeId();
-                            String heureReservation = trajet.getHeureDepart() != null ? trajet.getHeureDepart().format(FMT_TIME) : "--:--";
                             String heureRetour  = trajet.getHeureRetourPrevue() != null ? trajet.getHeureRetourPrevue().format(FMT_TIME) : "--:--";
                             List<ReservationAffecteeDTO> resList = new ArrayList<>();
                             if (trajet.getListeReservations() != null) {
@@ -740,6 +739,20 @@
                                             Comparator.nullsLast(Comparator.naturalOrder()))
                                                 .thenComparingInt(ReservationAffecteeDTO::getIdReservation));
                             }
+
+                            // Regle d'affichage par ligne:
+                            // priorite a l'heure de reservation; si absente, utiliser l'heure voiture.
+                            LocalDateTime heureReservationLigne = null;
+                            for (ReservationAffecteeDTO r : resList) {
+                                if (r.getDateHeureArrive() != null
+                                        && (heureReservationLigne == null || r.getDateHeureArrive().isBefore(heureReservationLigne))) {
+                                    heureReservationLigne = r.getDateHeureArrive();
+                                }
+                            }
+                            LocalDateTime heureAfficheeLigne = heureReservationLigne != null
+                                    ? heureReservationLigne
+                                    : trajet.getHeureDepart();
+                            String heureReservation = heureAfficheeLigne != null ? heureAfficheeLigne.format(FMT_TIME) : "--:--";
 
                             // Badge type carburant
                             String typeRaw   = trajet.getTypeVehicule() != null ? trajet.getTypeVehicule() : "";
