@@ -130,14 +130,20 @@ public class AssignationService {
 
     public List<Reservation> sortReservationsByNbPassagerDesc(List<Reservation> reservations) {
         return reservations.stream()
-                .sorted((r1, r2) -> Integer.compare(r2.getNbPassager(), r1.getNbPassager()))
+                .sorted((r1, r2) -> {
+                    int cmpPassagers = Integer.compare(r2.getNbPassager(), r1.getNbPassager());
+                    if (cmpPassagers != 0) {
+                        return cmpPassagers;
+                    }
+                    return resolveClientSortKey(r1).compareToIgnoreCase(resolveClientSortKey(r2));
+                })
                 .collect(Collectors.toList());
     }
 
 
     public List<TrajetVehiculeDTO> findCandidates(List<TrajetVehiculeDTO> etatsVehicules, int nbPassagers) {
         return etatsVehicules.stream()
-                .filter(v -> v.getPlacesDisponibles() >= nbPassagers)
+                .filter(v -> v.getPlacesDisponibles() > 0)
                 .collect(Collectors.toList());
     }
 
@@ -164,11 +170,18 @@ public class AssignationService {
      * Convertit une Reservation en ReservationAffecteeDTO.
      */
     private ReservationAffecteeDTO toReservationAffecteeDTO(Reservation r, int ordreVisite, double Distance) {
+        return toReservationAffecteeDTO(r, ordreVisite, Distance, r.getNbPassager());
+    }
+
+    private ReservationAffecteeDTO toReservationAffecteeDTO(Reservation r,
+                                                            int ordreVisite,
+                                                            double Distance,
+                                                            int nbPassagersAffectes) {
         ReservationAffecteeDTO dto = new ReservationAffecteeDTO();
         dto.setIdReservation(r.getIdReservation());
         dto.setDateHeureArrive(r.getDateHeureArrive());
         dto.setIdClient(r.getIdClient());
-        dto.setNbPassager(r.getNbPassager());
+        dto.setNbPassager(nbPassagersAffectes);
         dto.setIdHotel(r.getHotel().getIdHotel());
         dto.setNomHotel(r.getHotel().getNom());
         dto.setOrdreVisite(ordreVisite);
@@ -184,6 +197,19 @@ public class AssignationService {
         }
         
         return dto;
+    }
+
+    private String resolveClientSortKey(Reservation reservation) {
+        if (reservation == null) {
+            return "";
+        }
+        if (reservation.getClient() != null && reservation.getClient().getName() != null) {
+            return reservation.getClient().getName().trim();
+        }
+        if (reservation.getIdClient() != null) {
+            return reservation.getIdClient().trim();
+        }
+        return "";
     }
 
     /**
@@ -211,7 +237,7 @@ public class AssignationService {
                                                     int nbPassagers,
                                                     LocalDateTime fenetreFin,
                                                     Map<Integer, LocalDateTime> vehiculeReturnTimes) {
-        if (vehicule.getPlacesDisponibles() < nbPassagers) {
+        if (vehicule.getPlacesDisponibles() <= 0) {
             return false;
         }
 
@@ -236,12 +262,12 @@ public class AssignationService {
 
         // 1) Priorite au vehicule avec capacite la plus proche du besoin (moins de places vides).
         int minPlacesVides = candidats.stream()
-            .mapToInt(v -> v.getPlacesDisponibles() - nbPassagers)
+            .mapToInt(v -> Math.abs(v.getPlacesDisponibles() - nbPassagers))
             .min()
             .orElse(Integer.MAX_VALUE);
 
         List<TrajetVehiculeDTO> byCapacity = candidats.stream()
-            .filter(v -> (v.getPlacesDisponibles() - nbPassagers) == minPlacesVides)
+            .filter(v -> Math.abs(v.getPlacesDisponibles() - nbPassagers) == minPlacesVides)
             .collect(Collectors.toList());
 
         if (byCapacity.size() == 1) {
@@ -592,44 +618,56 @@ public class AssignationService {
         Set<Integer> vehiculesAvecNouveauTrajet = new HashSet<>();
 
         for (Reservation reservation : reservationsTriees) {
-            // Trouver les candidats
-            List<TrajetVehiculeDTO> candidats = findCandidates(etatsVehicules, reservation.getNbPassager());
+            int passagersRestants = reservation.getNbPassager();
 
-            if (candidats.isEmpty()) {
-                // Aucun véhicule disponible -> réservation non affectée
-                ReservationAffecteeDTO nonAffectee = toReservationAffecteeDTO(reservation, 0, 0);
-                nonAffectees.add(nonAffectee);
-            } else {
-                // Sélectionner le meilleur véhicule
+            while (passagersRestants > 0) {
+                List<TrajetVehiculeDTO> candidats = findCandidates(etatsVehicules, passagersRestants);
+                if (candidats.isEmpty()) {
+                    break;
+                }
+
                 TrajetVehiculeDTO vehiculeChoisi = selectBestVehicle(
-                    candidats,
-                    reservation.getNbPassager(),
-                    vehiculeTrajetCounts);
-                
-                // Calculer la distance depuis le point précédent
-                int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty() 
-                        ? AEROPORT_ID 
+                        candidats,
+                        passagersRestants,
+                        vehiculeTrajetCounts);
+                if (vehiculeChoisi == null) {
+                    break;
+                }
+
+                int placesDisponibles = vehiculeChoisi.getPlacesDisponibles();
+                if (placesDisponibles <= 0) {
+                    break;
+                }
+
+                int aAffecter = Math.min(passagersRestants, placesDisponibles);
+
+                int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty()
+                        ? AEROPORT_ID
                         : vehiculeChoisi.getListeReservations()
                                 .get(vehiculeChoisi.getListeReservations().size() - 1)
                                 .getIdHotel();
-                
+
                 double distance = distanceService.getDistance(dernierLieu, reservation.getHotel().getIdHotel());
 
-                // Créer le DTO et l'ajouter au véhicule
                 int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
-                ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance);
+                ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance, aAffecter);
 
                 boolean premierAffectationDuTrajet = vehiculeChoisi.getListeReservations().isEmpty();
                 vehiculeChoisi.addReservation(affectee);
 
-                // Reflect in-memory count once when a vehicle starts a new trip.
                 if (premierAffectationDuTrajet && vehiculesAvecNouveauTrajet.add(vehiculeChoisi.getVehiculeId())) {
                     vehiculeTrajetCounts.put(
-                        vehiculeChoisi.getVehiculeId(),
-                        vehiculeTrajetCounts.getOrDefault(vehiculeChoisi.getVehiculeId(), 0) + 1);
+                            vehiculeChoisi.getVehiculeId(),
+                            vehiculeTrajetCounts.getOrDefault(vehiculeChoisi.getVehiculeId(), 0) + 1);
                 }
-                
-                totalPassagers += reservation.getNbPassager();
+
+                totalPassagers += aAffecter;
+                passagersRestants -= aAffecter;
+            }
+
+            if (passagersRestants > 0) {
+                ReservationAffecteeDTO nonAffectee = toReservationAffecteeDTO(reservation, 0, 0, passagersRestants);
+                nonAffectees.add(nonAffectee);
             }
         }
 
@@ -845,22 +883,30 @@ public class AssignationService {
                     continue;
                 }
 
-                List<TrajetVehiculeDTO> candidats = etatsVehicules.stream()
-                        .filter(v -> isVehiculeDisponiblePourFenetre(v,
-                                reservation.getNbPassager(),
-                                fenetreFin != null ? fenetreFin : heureDepartReference,
-                                vehiculeReturnTimes))
-                        .collect(Collectors.toList());
+                int passagersRestants = reservation.getNbPassager();
+                boolean affectationEffectuee = false;
 
-                if (!candidats.isEmpty()) {
-                        TrajetVehiculeDTO vehiculeChoisi = selectBestVehicleByLoadAndFuel(
+                while (passagersRestants > 0) {
+                    final int passagersDemandes = passagersRestants;
+
+                    List<TrajetVehiculeDTO> candidats = etatsVehicules.stream()
+                            .filter(v -> isVehiculeDisponiblePourFenetre(v,
+                            passagersDemandes,
+                                    fenetreFin != null ? fenetreFin : heureDepartReference,
+                                    vehiculeReturnTimes))
+                            .collect(Collectors.toList());
+
+                    if (candidats.isEmpty()) {
+                        break;
+                    }
+
+                    TrajetVehiculeDTO vehiculeChoisi = selectBestVehicleByLoadAndFuel(
                             candidats,
-                            reservation.getNbPassager(),
+                            passagersDemandes,
                             vehiculeTrajetCounts);
 
                     if (vehiculeChoisi == null) {
-                        nonAffecteesPourLeProchain.add(reservation);
-                        continue;
+                        break;
                     }
 
                     LocalDateTime retourVehicule = vehiculeReturnTimes.get(vehiculeChoisi.getVehiculeId());
@@ -872,6 +918,13 @@ public class AssignationService {
                         departDepuisRetourVehicule = true;
                     }
 
+                    int placesDisponibles = vehiculeChoisi.getPlacesDisponibles();
+                    if (placesDisponibles <= 0) {
+                        break;
+                    }
+
+                    int aAffecter = Math.min(passagersRestants, placesDisponibles);
+
                     int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty()
                             ? AEROPORT_ID
                             : vehiculeChoisi.getListeReservations()
@@ -880,8 +933,9 @@ public class AssignationService {
 
                     double distance = distanceService.getDistance(dernierLieu, reservation.getHotel().getIdHotel());
                     int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
-                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance);
+                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance, aAffecter);
                     vehiculeChoisi.addReservation(affectee);
+                    affectationEffectuee = true;
 
                     if (fenetreDebut != null
                             && fenetreFin != null
@@ -892,9 +946,20 @@ public class AssignationService {
                         derniereReservationAssigneeDansFenetre = reservation.getDateHeureArrive();
                     }
 
-                    totalPassagers += reservation.getNbPassager();
-                } else {
-                    nonAffecteesPourLeProchain.add(reservation);
+                    totalPassagers += aAffecter;
+                    passagersRestants -= aAffecter;
+                }
+
+                if (!affectationEffectuee || passagersRestants > 0) {
+                    Reservation partielle = new Reservation();
+                    partielle.setIdReservation(reservation.getIdReservation());
+                    partielle.setDateHeureArrive(reservation.getDateHeureArrive());
+                    partielle.setIdClient(reservation.getIdClient());
+                    partielle.setNbPassager(passagersRestants > 0 ? passagersRestants : reservation.getNbPassager());
+                    partielle.setHotel(reservation.getHotel());
+                    partielle.setClient(reservation.getClient());
+                    partielle.setClientId(reservation.getClientId());
+                    nonAffecteesPourLeProchain.add(partielle);
                 }
             }
 

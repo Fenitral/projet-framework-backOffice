@@ -6,6 +6,7 @@
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="java.util.Collections" %>
 <%@ page import="java.util.Comparator" %>
+<%@ page import="java.util.Map" %>
 <%@ page import="java.time.LocalDateTime" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <!DOCTYPE html>
@@ -328,6 +329,15 @@
             color: #667eea;
             font-size: 0.8em;
         }
+        .hotel-badge .priority {
+            color: #0f766e;
+            font-size: 0.76em;
+            font-weight: 700;
+            background: #ccfbf1;
+            border: 1px solid #5eead4;
+            border-radius: 10px;
+            padding: 1px 6px;
+        }
 
         /* Colonne km */
         .km-cell {
@@ -546,6 +556,7 @@
     DateTimeFormatter FMT_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     String datePlanification   = (String) request.getAttribute("datePlanification");
     String heureFiltre = (String) request.getAttribute("heureFiltre");
+    Map<Integer, Integer> reservationPriorityMap = (Map<Integer, Integer>) request.getAttribute("reservationPriorityMap");
 
     @SuppressWarnings("unchecked")
     List<GroupementDTO> groupements = (List<GroupementDTO>) request.getAttribute("groupements");
@@ -810,11 +821,13 @@
                                         String nomHotel = res.getNomHotel() != null ? res.getNomHotel() : "Hôtel ?";
                                         String heurePassage = res.getHeurePassage() != null ? res.getHeurePassage().format(FMT_TIME) : "";
                                         String resCardId = "res-card-" + groupKey + "-v" + trajet.getVehiculeId() + "-r" + res.getIdReservation();
+                                        Integer prio = reservationPriorityMap != null ? reservationPriorityMap.get(res.getIdReservation()) : null;
                             %>
                                 <span class="hotel-badge">
                                     <span class="ordre"><%= res.getOrdreVisite() %></span>
                                     <a href="#" class="detail-link" onclick="showDetailCard('<%= resCardId %>'); return false;">#<%= res.getIdReservation() %> - <%= nomHotel %></a>
                                     <span class="passagers"><i class="fas fa-user"></i>&nbsp;<%= res.getNbPassager() %></span>
+                                    <span class="priority"><%= prio != null ? ("P" + prio) : "-" %></span>
                                 </span>
                             <%
                                     }
@@ -919,12 +932,14 @@
                                             ? d.getClientName()
                                             : (d.getIdClient() != null ? d.getIdClient() : "-");
                                     String vehRef = trajetCard.getVehiculeReference() != null ? trajetCard.getVehiculeReference() : "-";
+                                        Integer dPrio = reservationPriorityMap != null ? reservationPriorityMap.get(d.getIdReservation()) : null;
                 %>
                     <div id="<%= resCardId %>" class="details-card detail-card-pane">
                         <div class="details-title"><i class="fas fa-receipt" style="margin-right:6px"></i>Réservation #<%= d.getIdReservation() %></div>
                         <div class="details-grid">
                             <div><span class="detail-label">Client:</span><%= dClient %></div>
                             <div><span class="detail-label">Id client:</span><%= d.getIdClient() != null ? d.getIdClient() : "-" %></div>
+                                    <div><span class="detail-label">Priorité:</span><%= dPrio != null ? ("P" + dPrio) : "-" %></div>
                             <div><span class="detail-label">Hôtel:</span><%= d.getNomHotel() != null ? d.getNomHotel() : "-" %></div>
                             <div><span class="detail-label">Passagers:</span><%= d.getNbPassager() %></div>
                             <div><span class="detail-label">Heure arrivée:</span><%= dArrivee %></div>

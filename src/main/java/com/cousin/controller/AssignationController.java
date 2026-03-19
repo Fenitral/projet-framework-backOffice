@@ -1,11 +1,13 @@
 // filepath: src/main/java/com/cousin/controller/AssignationController.java
 package com.cousin.controller;
 
+import com.cousin.dto.AllocationReservationDTO;
 import com.cousin.dto.PlanificationDTO;
 import com.cousin.model.Assignation;
 import com.cousin.model.Reservation;
 import com.cousin.model.Vehicule;
 import com.cousin.service.AssignationService;
+import com.cousin.service.ReservationAllocationService;
 import com.framework.annotation.*;
 
 import com.framework.model.ModelView;
@@ -14,12 +16,57 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class AssignationController {
 
     private final AssignationService assignationService = new AssignationService();
+    private final ReservationAllocationService reservationAllocationService = new ReservationAllocationService();
+
+    private List<Vehicule> cloneVehiculesForPreview(List<Vehicule> vehicules) {
+        List<Vehicule> copies = new ArrayList<>();
+        if (vehicules == null) {
+            return copies;
+        }
+
+        for (Vehicule source : vehicules) {
+            Vehicule copy = new Vehicule();
+            copy.setIdVehicule(source.getIdVehicule());
+            copy.setReference(source.getReference());
+            copy.setNbPlace(source.getNbPlace());
+            copy.setTypeVehicule(source.getTypeVehicule());
+            copy.setStatut(source.getStatut());
+            copy.setLieuActuel(source.getLieuActuel());
+            copy.setNbTrajets(source.getNbTrajets());
+            copy.setPlacesDisponibles(source.getNbPlace());
+            copies.add(copy);
+        }
+
+        return copies;
+    }
+
+    private Map<Integer, Integer> buildReservationPriorityMap(LocalDate date) throws SQLException {
+        Map<Integer, Integer> priorityByReservationId = new HashMap<>();
+
+        List<Reservation> reservations = assignationService.getReservationsByDate(date);
+        List<Vehicule> vehicules = assignationService.getAllVehicules();
+
+        List<AllocationReservationDTO> allocations =
+                reservationAllocationService.prepareReservationsForAllocation(date, new ArrayList<>(reservations));
+        reservationAllocationService.allocatePassengersToVehicles(allocations, cloneVehiculesForPreview(vehicules));
+
+        for (AllocationReservationDTO allocation : allocations) {
+            if (allocation.getReservationId() != null) {
+                priorityByReservationId.put(allocation.getReservationId().intValue(), allocation.getPrioriteClient());
+            }
+        }
+
+        return priorityByReservationId;
+    }
 
     /**
      * Affiche la page de formulaire de planification.
@@ -66,6 +113,7 @@ public class AssignationController {
         mv.addAttribute("planification", planification);
         mv.addAttribute("datePlanification", date.toString());
         mv.addAttribute("heureDepart", heure.toString());
+        mv.addAttribute("reservationPriorityMap", buildReservationPriorityMap(date));
         return mv;
     }
 
@@ -183,6 +231,7 @@ public class AssignationController {
         mv.addAttribute("datePlanification", date.toString());
         mv.addAttribute("heureDepart", heure.toString());
         mv.addAttribute("successMessage", "Planification sauvegardée avec succès !");
+        mv.addAttribute("reservationPriorityMap", buildReservationPriorityMap(date));
         return mv;
     }
 }

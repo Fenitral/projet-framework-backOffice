@@ -3,6 +3,7 @@
 <%@ page import="com.cousin.dto.TrajetVehiculeDTO" %>
 <%@ page import="com.cousin.dto.ReservationAffecteeDTO" %>
 <%@ page import="java.util.List" %>
+<%@ page import="java.util.Map" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <!DOCTYPE html>
 <html>
@@ -182,6 +183,16 @@
         .badge-essence { background: #fff3cd; color: #856404; }
         .badge-hybride { background: #cce5ff; color: #004085; }
         .badge-electrique { background: #e2e3e5; color: #383d41; }
+        .priority-chip {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 14px;
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #0f766e;
+            background: #ccfbf1;
+            border: 1px solid #5eead4;
+        }
         
         .empty-state {
             text-align: center;
@@ -234,6 +245,7 @@
     PlanificationDTO planification = (PlanificationDTO) request.getAttribute("planification");
     String datePlanification = (String) request.getAttribute("datePlanification");
     String heureDepart = (String) request.getAttribute("heureDepart");
+    Map<Integer, Integer> reservationPriorityMap = (Map<Integer, Integer>) request.getAttribute("reservationPriorityMap");
     DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
     
     int totalTrajets = 0;
@@ -384,6 +396,7 @@
                                 <th>Client</th>
                                 <th>Hôtel</th>
                                 <th>Passagers</th>
+                                <th>Priorité</th>
                                 <th>Distance Aéroport-Hôtel</th>
                                 <th>Distance depuis précédent</th>
                             </tr>
@@ -395,6 +408,10 @@
                                 <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientId() != null ? res.getClientId() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                                 <td><i class="fas fa-hotel" style="color: #667eea; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
                                 <td><i class="fas fa-users" style="color: #28a745; margin-right: 5px;"></i><%= res.getNbPassager() %></td>
+                                <td>
+                                    <% Integer prio = reservationPriorityMap != null ? reservationPriorityMap.get(res.getIdReservation()) : null; %>
+                                    <span class="priority-chip"><%= prio != null ? ("P" + prio) : "-" %></span>
+                                </td>
                                 <td><i class="fas fa-plane" style="color: #fd7e14; margin-right: 5px;"></i><%= String.format("%.1f", res.getDistanceDepuisAeroport()) %> km</td>
                                 <td><i class="fas fa-route" style="color: #17a2b8; margin-right: 5px;"></i><%= String.format("%.1f", res.getDistance()) %> km</td>
                             </tr>
@@ -457,6 +474,7 @@
                             <th>Client</th>
                             <th>Hôtel</th>
                             <th>Passagers</th>
+                            <th>Priorité</th>
                             <th>Motif</th>
                         </tr>
                     </thead>
@@ -467,6 +485,10 @@
                             <td><i class="fas fa-user-circle" style="color: #6f42c1; margin-right: 5px;"></i><%= res.getClientId() != null ? res.getClientId() : (res.getIdClient() != null ? res.getIdClient() : "-") %></td>
                             <td><i class="fas fa-hotel" style="color: #dc3545; margin-right: 8px;"></i><%= res.getNomHotel() %></td>
                             <td><%= res.getNbPassager() %></td>
+                            <td>
+                                <% Integer prio = reservationPriorityMap != null ? reservationPriorityMap.get(res.getIdReservation()) : null; %>
+                                <span class="priority-chip"><%= prio != null ? ("P" + prio) : "-" %></span>
+                            </td>
                             <td><span class="badge" style="background: #f8d7da; color: #721c24;">Capacité insuffisante</span></td>
                         </tr>
                         <% } %>
