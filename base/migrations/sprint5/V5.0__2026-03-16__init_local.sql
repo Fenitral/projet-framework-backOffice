@@ -1,6 +1,6 @@
 BEGIN;
 create database reservation_voiture1;
-\c reservation_voiture1
+\c reservation_voiture
 
 CREATE SCHEMA IF NOT EXISTS local;
 
@@ -118,3 +118,6 @@ CREATE TABLE IF NOT EXISTS local.assignation_detaillee (
 );
 
 COMMIT;
+
+
+\dt local.*
