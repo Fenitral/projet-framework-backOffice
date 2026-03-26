@@ -7,11 +7,11 @@ INSERT INTO local.hotel (nom, aeroport, is_aeroport) VALUES
     ('Lokanga', NULL, FALSE),
     ('Radisson Blu', NULL, FALSE);
 
-INSERT INTO local.vehicule (reference, nbplace, typevehicule, lieu_actuel, statut) VALUES
-    ('VH-001', 4, 'D', 'AEROPORT', 'DISPONIBLE'),
-    ('VH-002', 5, 'E', 'AEROPORT', 'DISPONIBLE'),
-    ('VH-003', 2, 'D', 'AEROPORT', 'MAINTENANCE'),
-    ('VH-004', 7, 'E', 'AEROPORT', 'DISPONIBLE');
+INSERT INTO local.vehicule (reference, nbplace, typevehicule, lieu_actuel, statut, heure_disponibilite) VALUES
+    ('VH-001', 4, 'D', 'AEROPORT', 'DISPONIBLE', '10:00:00'),
+    ('VH-002', 5, 'E', 'AEROPORT', 'DISPONIBLE', '00:00:00'),
+    ('VH-003', 2, 'D', 'AEROPORT', 'MAINTENANCE', '00:00:00'),
+    ('VH-004', 7, 'E', 'AEROPORT', 'DISPONIBLE', '00:00:00');
 
 INSERT INTO local.client (name, email, phone) VALUES
     ('Tina', 'tina@gmail.com', '0342568678'),

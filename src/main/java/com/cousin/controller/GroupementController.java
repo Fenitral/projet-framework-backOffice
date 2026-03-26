@@ -50,6 +50,7 @@ public class GroupementController {
             copy.setLieuActuel(source.getLieuActuel());
             copy.setNbTrajets(source.getNbTrajets());
             copy.setPlacesDisponibles(source.getNbPlace());
+            copy.setHeureDisponibilite(source.getHeureDisponibilite());
             copies.add(copy);
         }
 
@@ -64,7 +65,7 @@ public class GroupementController {
 
         List<AllocationReservationDTO> allocations =
                 reservationAllocationService.prepareReservationsForAllocation(date, new ArrayList<>(reservations));
-        reservationAllocationService.allocatePassengersToVehicles(allocations, cloneVehiculesForPreview(vehicules));
+        reservationAllocationService.allocatePassengersToVehicles(allocations, cloneVehiculesForPreview(vehicules), new ArrayList<>(reservations));
 
         for (AllocationReservationDTO allocation : allocations) {
             if (allocation.getReservationId() != null) {

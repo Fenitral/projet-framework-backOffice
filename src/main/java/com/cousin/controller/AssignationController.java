@@ -43,6 +43,7 @@ public class AssignationController {
             copy.setLieuActuel(source.getLieuActuel());
             copy.setNbTrajets(source.getNbTrajets());
             copy.setPlacesDisponibles(source.getNbPlace());
+            copy.setHeureDisponibilite(source.getHeureDisponibilite());
             copies.add(copy);
         }
 
@@ -57,7 +58,7 @@ public class AssignationController {
 
         List<AllocationReservationDTO> allocations =
                 reservationAllocationService.prepareReservationsForAllocation(date, new ArrayList<>(reservations));
-        reservationAllocationService.allocatePassengersToVehicles(allocations, cloneVehiculesForPreview(vehicules));
+        reservationAllocationService.allocatePassengersToVehicles(allocations, cloneVehiculesForPreview(vehicules), new ArrayList<>(reservations));
 
         for (AllocationReservationDTO allocation : allocations) {
             if (allocation.getReservationId() != null) {

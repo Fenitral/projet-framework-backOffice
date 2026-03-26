@@ -580,6 +580,7 @@
         <form action="<%= request.getContextPath() %>/groupementResultats" method="get" class="filter-form">
             <input type="hidden" name="dateStr" value="<%= datePlanification != null ? datePlanification : "" %>">
             <div class="filter-group">
+            <h2><i class="fas fa-car-side" style="margin-right:10px"></i>ETU003245-3328-3368</h2>
                 <label for="heureStr"><i class="fas fa-clock" style="margin-right:6px"></i>Filtrer par heure</label>
                 <input type="time" id="heureStr" name="heureStr" value="<%= heureFiltre != null ? heureFiltre : "" %>">
             </div>

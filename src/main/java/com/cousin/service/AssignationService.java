@@ -142,8 +142,21 @@ public class AssignationService {
 
 
     public List<TrajetVehiculeDTO> findCandidates(List<TrajetVehiculeDTO> etatsVehicules, int nbPassagers) {
+        // On suppose que l'heure de la réservation/fenêtre est passée en paramètre ou accessible dans le contexte
+        // Pour une robustesse immédiate, on filtre sur la fenêtre de départ si disponible
+        final LocalTime heureReference;
+        if (!etatsVehicules.isEmpty() && etatsVehicules.get(0).getHeureDepart() != null) {
+            heureReference = etatsVehicules.get(0).getHeureDepart().toLocalTime();
+        } else {
+            heureReference = null;
+        }
         return etatsVehicules.stream()
                 .filter(v -> v.getPlacesDisponibles() > 0)
+                .filter(v -> {
+                    if (heureReference == null || v.getHeureDisponibilite() == null) return true;
+                    LocalTime dispo = LocalTime.parse(v.getHeureDisponibilite());
+                    return !heureReference.isBefore(dispo);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -224,6 +237,7 @@ public class AssignationService {
             etat.setTypeVehicule(v.getTypeVehicule());
             etat.setCapacite(v.getNbPlace());
             etat.setHeureDepart(heureDepart);
+            etat.setHeureDisponibilite(v.getHeureDisponibilite());
             etats.add(etat);
         }
         return etats;

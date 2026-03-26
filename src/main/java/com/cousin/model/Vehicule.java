@@ -11,6 +11,9 @@ public class Vehicule {
     private int placesDisponibles;
     private int nbTrajets;
 
+    // Heure de disponibilité (format HH:mm:ss)
+    private String heureDisponibilite = "00:00:00";
+
     public Vehicule() {
     }
 
@@ -22,6 +25,7 @@ public class Vehicule {
         this.statut = "DISPONIBLE"; // Par défaut
         this.placesDisponibles = nbPlace;
         this.nbTrajets = 0;
+        this.heureDisponibilite = "00:00:00";
     }
 
     public int getPlacesDisponibles() {
@@ -36,6 +40,14 @@ public class Vehicule {
     }
     public void setNbTrajets(int nbTrajets) {
         this.nbTrajets = nbTrajets;
+    }
+
+    public String getHeureDisponibilite() {
+        return heureDisponibilite;
+    }
+
+    public void setHeureDisponibilite(String heureDisponibilite) {
+        this.heureDisponibilite = heureDisponibilite;
     }
 
     public int getIdVehicule() {

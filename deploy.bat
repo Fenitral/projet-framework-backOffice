@@ -3,8 +3,8 @@ setlocal enabledelayedexpansion
 
 set SRC=src\main\java
 set BUILD=build
-set TOMCAT_LIB=D:\logiciel\apache-tomcat-10.1.28\apache-tomcat-10.1.28\lib
-set TOMCAT_PATH=D:\logiciel\apache-tomcat-10.1.28\apache-tomcat-10.1.28
+set TOMCAT_LIB=D:\logiciels\apache-tomcat-10.1.31\lib
+set TOMCAT_PATH=D:\logiciels\apache-tomcat-10.1.31
 set WEBAPP_SOURCE=src\main\webapp
 set APP_LIB=%WEBAPP_SOURCE%\WEB-INF\lib
 set FRAMEWORK_JAR=%APP_LIB%\framework.jar
