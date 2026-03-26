@@ -11,26 +11,28 @@ import java.util.List;
 
 public class VehiculeRepository {
     public void insert(Vehicule vehicule) throws SQLException {
-        String sql = "INSERT INTO local.Vehicule(Reference, nbPlace, TypeVehicule) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO local.Vehicule(Reference, nbPlace, TypeVehicule, heure_disponibilite) VALUES (?, ?, ?, ?)";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, vehicule.getReference());
             statement.setInt(2, vehicule.getNbPlace());
             statement.setString(3, vehicule.getTypeVehicule());
+            statement.setString(4, vehicule.getHeureDisponibilite());
             statement.executeUpdate();
         }
     }
 
     public void update(Vehicule vehicule) throws SQLException {
-        String sql = "UPDATE local.Vehicule SET Reference = ?, nbPlace = ?, TypeVehicule = ? WHERE Id_Vehicule = ?";
+        String sql = "UPDATE local.Vehicule SET Reference = ?, nbPlace = ?, TypeVehicule = ?, heure_disponibilite = ? WHERE Id_Vehicule = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, vehicule.getReference());
             statement.setInt(2, vehicule.getNbPlace());
             statement.setString(3, vehicule.getTypeVehicule());
-            statement.setInt(4, vehicule.getIdVehicule());
+            statement.setString(4, vehicule.getHeureDisponibilite());
+            statement.setInt(5, vehicule.getIdVehicule());
             statement.executeUpdate();
         }
     }
@@ -46,7 +48,7 @@ public class VehiculeRepository {
     }
 
     public Vehicule findById(int idVehicule) throws SQLException {
-        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule FROM local.Vehicule WHERE Id_Vehicule = ?";
+        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule, heure_disponibilite FROM local.Vehicule WHERE Id_Vehicule = ?";
 
         try (Connection connection = DbConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -58,6 +60,7 @@ public class VehiculeRepository {
                     vehicule.setReference(resultSet.getString("Reference"));
                     vehicule.setNbPlace(resultSet.getInt("nbPlace"));
                     vehicule.setTypeVehicule(resultSet.getString("TypeVehicule"));
+                    vehicule.setHeureDisponibilite(resultSet.getString("heure_disponibilite"));
                     return vehicule;
                 }
             }
@@ -67,7 +70,7 @@ public class VehiculeRepository {
     }
 
     public List<Vehicule> findAll() throws SQLException {
-        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule FROM local.Vehicule ORDER BY Id_Vehicule";
+        String sql = "SELECT Id_Vehicule, Reference, nbPlace, TypeVehicule, heure_disponibilite FROM local.Vehicule ORDER BY Id_Vehicule";
         List<Vehicule> vehicules = new ArrayList<>();
 
         try (Connection connection = DbConnection.getConnection();
@@ -79,6 +82,7 @@ public class VehiculeRepository {
                 vehicule.setReference(resultSet.getString("Reference"));
                 vehicule.setNbPlace(resultSet.getInt("nbPlace"));
                 vehicule.setTypeVehicule(resultSet.getString("TypeVehicule"));
+                vehicule.setHeureDisponibilite(resultSet.getString("heure_disponibilite"));
                 vehicules.add(vehicule);
             }
         }

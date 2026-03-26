@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TrajetVehiculeDTO {
+        private String heureDisponibilite;
     private int vehiculeId;
     private String vehiculeReference;
     private String typeVehicule;
@@ -21,9 +22,18 @@ public class TrajetVehiculeDTO {
         this.distanceTotale = 0;
         this.distanceParcourue = 0;
         this.placesUtilisees = 0;
+        this.heureDisponibilite = "00:00:00";
     }
 
     // Getters et Setters
+
+        public String getHeureDisponibilite() {
+            return heureDisponibilite;
+        }
+
+        public void setHeureDisponibilite(String heureDisponibilite) {
+            this.heureDisponibilite = heureDisponibilite;
+        }
     public int getVehiculeId() {
         return vehiculeId;
     }
