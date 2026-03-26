@@ -1,3 +1,6 @@
+BACK-OFFICE : 
+BACKEND: Ange
+FRONTEND: Tina
 🎯 SPRINT 8 - Liste des tâches
 PHASE 1 : ASSIGNATION DES NON-ASSIGNÉES EN PRIORITÉ
 
@@ -109,3 +112,144 @@ D'abord phase NON-ASSIGNÉES (tâches 1-3)
 Puis phase SÉPARATION (tâche 3)
 Enfin phase FENÊTRE RETOUR (tâches 5-8)
 Tester avec le scénario R1(18)→V1(8)+V2(5)→V3(10)
+
+_________DISTRIBUTION DE TACHES__________________________________
+═══════════════════════════════════════════════════════════════════════════
+🔧 BACKEND - ANGE
+═══════════════════════════════════════════════════════════════════════════
+
+PHASE 1 : NOUVELLES FONCTIONS À CRÉER
+═════════════════════════════════════════
+
+1️⃣ AssignationService.java
+   public List<Reservation> sortReservationsWithUnassignedPriority(
+       List<Reservation> allReservations, 
+       List<Reservation> unassignedReservations)
+
+2️⃣ AssignationService.java
+   public List<Reservation> findReservationsInReturnWindow(
+       List<Reservation> waitingReservations,
+       LocalDateTime vehicleReturn,
+       int windowMinutes)
+
+3️⃣ AssignationService.java
+   public boolean canSplitPassengers(
+       Reservation reservation,
+       List<TrajetVehiculeDTO> availableVehicles)
+
+4️⃣ AssignationService.java
+   public Reservation assignPartially(
+       Reservation reservation,
+       TrajetVehiculeDTO vehicle,
+       int nbToAssign)
+
+PHASE 2 : SURCHARGES À AJOUTER
+════════════════════════════════
+
+5️⃣ AssignationService.java (ligne ~131)
+   public List<Reservation> sortReservationsByNbPassagerDesc(
+       List<Reservation> reservations,
+       boolean byOldestFirst)
+
+PHASE 3 : MODIFICATIONS DANS planifierParGroupements()
+═════════════════════════════════════════════════════════
+
+6️⃣ AssignationService.java (ligne ~834)
+   Remplacer appel sortReservationsByNbPassagerDesc()
+   Par sortReservationsWithUnassignedPriority()
+
+7️⃣ AssignationService.java (ligne ~834)
+   Ajouter variables:
+   List<Reservation> reservationsNonAssigneesGlobales
+   Map<Integer, LocalDateTime> minHeureArriveeParVehicule
+
+8️⃣ AssignationService.java (ligne ~855)
+   Ajouter condition canSplitPassengers() et assignPartially()
+
+9️⃣ AssignationService.java (après ligne ~1000)
+   Ajouter boucle fenêtre retour:
+   - findReservationsInReturnWindow()
+   - assignPartially()
+   - Recalcul distances/heures
+
+PHASE 4 : OPTIONNEL - Modèle Reservation
+═════════════════════════════════════════════
+
+🔟 Reservation.java
+   private boolean partiallyAssigned = false;
+   + getter/setter
+
+═══════════════════════════════════════════════════════════════════════════
+🎨 FRONTEND - TINA
+═══════════════════════════════════════════════════════════════════════════
+
+PHASE 1 : AFFICHAGE NON-ASSIGNÉES
+═══════════════════════════════════
+
+1️⃣ affichageResultats.jsp
+   Ajouter section "Réservations En Attente"
+
+2️⃣ style.css
+   Ajouter classe .reservation-attente
+
+PHASE 2 : AFFICHAGE ASSIGNATION PARTIELLE
+═════════════════════════════════════════════
+
+3️⃣ affichageResultats.jsp
+   Modifier colonne passagers (ex: "8/8" ou "5/8")
+
+4️⃣ style.css
+   Ajouter classe .partial-badge
+
+PHASE 3 : AFFICHAGE FENÊTRE RETOUR
+═════════════════════════════════════
+
+5️⃣ affichageResultats.jsp
+   Ajouter colonne "Source Assignation"
+
+6️⃣ planification.jsp
+   Ajouter info "Assignations fenêtre retour"
+
+PHASE 4 : TABLEAU VÉHICULES AMÉLIORÉ
+═══════════════════════════════════════
+
+7️⃣ affichageResultats.jsp
+   Modifier affichage places: "8/15"
+   Ajouter badge fenêtre retour
+
+PHASE 5 : STYLE & UX
+═════════════════════
+
+8️⃣ style.css
+   Ajouter classes:
+   - .reservation-waiting
+   - .reservation-partial
+   - .reservation-window
+   - .priority-indicator
+
+9️⃣ sidebar.js (OPTIONNEL)
+   Ajouter filtres dynamiques
+
+PHASE 6 : MESSAGES INFORMATIFS
+═════════════════════════════════
+
+🔟 affichageResultats.jsp
+   Ajouter messages de synthèse
+
+═══════════════════════════════════════════════════════════════════════════
+📊 RÉSUMÉ TÂCHES PAR ÉQUIPE
+
+BACKEND (ANGE): 10 tâches
+- 4 nouvelles fonctions
+- 1 surcharge
+- 5 modifications planifierParGroupements()
+
+FRONTEND (TINA): 10 tâches
+- 2 JSP affichage non-assignées
+- 2 JSP/CSS assignation partielle
+- 2 JSP fenêtre retour
+- 2 JSP/CSS "véhicules amélioré"
+- 1 CSS style & UX
+- 1 JSP messages
+
+═══════════════════════════════════════════════════════════════════════════
