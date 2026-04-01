@@ -35,6 +35,14 @@ public class ParametreService {
         return getValeurObligatoire(TEMPS_ATTENTE_GROUPEMENT);
     }
 
+    /**
+     * SPRINT 8: Récupère la durée de la fenêtre de retour véhicule en minutes.
+     * NOTE: C'est le même paramètre que TEMPS_ATTENTE_GROUPEMENT
+     */
+    public int getDureeFenetreMinutes() throws SQLException {
+        return getTempsAttenteGroupement();
+    }
+
     private int getValeurObligatoire(String nomParametre) throws SQLException {
         Parametre parametre = parametreRepository.findByNom(nomParametre);
         if (parametre == null) {
