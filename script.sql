@@ -44,6 +44,8 @@ insert into local.reservation_temp (client, nb_people, dateheure, hotel_id) valu
 ('8', 8, '2026-02-28 13:00:00', 2),
 ('9', 7, '2026-02-15 13:00:00', 1),
 ('10', 1, '2026-02-18 22:55:00', 4);
+--------------------------------------
+data-test sp7
 
 update local.distance set valeur=90 where distance_id=1;
 update local.distance set valeur=35 where distance_id=2;
@@ -55,9 +57,17 @@ update local.vehicule set nbplace=5 where id_vehicule=1;
 update local.vehicule set nbplace=5 where id_vehicule=2;
 
 insert into local.vehicule( reference ,nbplace ,typevehicule ,heure_disponibilite)values
+('VH-001',5,'diesel','00:00:00'),
+('VH-003',5,'essence','00:00:00'),
 ('VH-003',12,'diesel','00:00:00');
-
 insert into local.vehicule( reference ,nbplace ,typevehicule ,heure_disponibilite)values
 ('VH-004',9,'diesel','00:00:00'),
 ('VH-005',12,'essence','13:00:00');
+
+truncate local.vehicule restart identity cascade; 
+---------------------------------------
+data-test sp8
+
+insert into local.vehicule( reference ,nbplace ,typevehicule ,heure_disponibilite)values
+('VH-006',20,'essence','00:00:00');
 

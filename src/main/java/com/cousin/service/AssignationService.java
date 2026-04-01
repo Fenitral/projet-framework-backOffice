@@ -269,6 +269,52 @@ public class AssignationService {
         return remainingReservation;
     }
 
+   /**
+     * SPRINT 8 - RÈGLE BEST-FIT CRUCIALE:
+     * Chercher la réservation PLUS PROCHE du nombre de places libres
+     * Distance = |nbPassagers - placesLibres|
+     * Si égalité: priorité à celui >= placesLibres
+     * 
+     * Retourne l'index de la meilleure réservation, ou -1 si aucune
+     */
+    public int findBestReservationForAvailableSpace(
+            List<Reservation> reservations,
+            int availableSpaces) {
+        
+        if (reservations == null || reservations.isEmpty() || availableSpaces <= 0) {
+            return -1;
+        }
+        
+        int bestIndex = -1;
+        int minDistance = Integer.MAX_VALUE;
+        int bestPassengers = 0;
+        
+        for (int i = 0; i < reservations.size(); i++) {
+            Reservation res = reservations.get(i);
+            if (res == null || res.getNbPassager() <= 0) {
+                continue;
+            }
+            
+            int nbPax = res.getNbPassager();
+            int distance = Math.abs(nbPax - availableSpaces);
+            
+            // Meilleur candidat si:
+            // 1. Distance plus petite
+            // 2. Distance égale + nbPax >= availableSpaces (préférer celui qui rentre complètement)
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestIndex = i;
+                bestPassengers = nbPax;
+            } else if (distance == minDistance && nbPax >= availableSpaces && bestPassengers < availableSpaces) {
+                // À distance égale, prendre celui >= availableSpaces si possible
+                bestIndex = i;
+                bestPassengers = nbPax;
+            }
+        }
+        
+        return bestIndex;
+    }
+
 
     public List<TrajetVehiculeDTO> findCandidates(List<TrajetVehiculeDTO> etatsVehicules, int nbPassagers) {
         // On suppose que l'heure de la réservation/fenêtre est passée en paramètre ou accessible dans le contexte
@@ -1025,40 +1071,61 @@ public class AssignationService {
             List<Reservation> nonAffecteesPourLeProchain = new ArrayList<>();
             LocalDateTime derniereReservationAssigneeDansFenetre = null;
 
-            // Assigner les réservations aux véhicules
-            for (Reservation reservation : reservationsTriees) {
-                if (reservation.getDateHeureArrive() == null) {
-                    nonAffecteesPourLeProchain.add(reservation);
-                    continue;
+            // SPRINT 8: Appliquer règle BEST-FIT AVEC SÉPARATION DEUX PHASES
+            // Phase 1: Assigner NON-ASSIGNÉES en priorité absolue
+            // Phase 2: Assigner NOUVELLES réservations avec BEST-FIT
+            
+            // Séparer non-assignées et nouvelles
+            List<Reservation> nonAssigneesFiltre = new ArrayList<>(reservationsEnAttente);
+            List<Reservation> nouvellesReservations = new ArrayList<>();
+            
+            for (Reservation res : reservationsAPlanifier) {
+                if (!reservationsEnAttente.contains(res)) {
+                    nouvellesReservations.add(res);
                 }
-
-                int passagersRestants = reservation.getNbPassager();
-                boolean affectationEffectuee = false;
-
-                while (passagersRestants > 0) {
-                    final int passagersDemandes = passagersRestants;
-
-                    List<TrajetVehiculeDTO> candidats = etatsVehicules.stream()
-                            .filter(v -> isVehiculeDisponiblePourFenetre(v,
-                            passagersDemandes,
-                                    fenetreFin != null ? fenetreFin : heureDepartReference,
-                                    vehiculeReturnTimes))
-                            .collect(Collectors.toList());
-
-                    if (candidats.isEmpty()) {
-                        break;
+            }
+            
+            // Trier les listes séparément par ordre de priorité
+            List<Reservation> nonAssgineesTriees = sortReservationsByNbPassagerDesc(nonAssigneesFiltre, true); // Anciennes d'abord
+            List<Reservation> nouvellesTriees = sortReservationsByNbPassagerDesc(nouvellesReservations, false); // Nombreux d'abord
+            
+            System.out.println("\n[DEBUG SPRINT 8] === ASSIGNATION 2-PHASES: NON-ASSIGNÉES PUIS NOUVELLES ===");
+            System.out.println("Phase 1: " + nonAssgineesTriees.size() + " NON-ASSIGNÉES");
+            System.out.println("Phase 2: " + nouvellesTriees.size() + " NOUVELLES");
+            
+            // ═══════════════════════════════════════════════════════════════════════════
+            // PHASE 1: ASSIGNER LES NON-ASSIGNÉES COMPLÈTEMENT EN PRIORITÉ
+            // ═══════════════════════════════════════════════════════════════════════════
+            List<Reservation> nonAssgineesEnCours = new ArrayList<>(nonAssgineesTriees);
+            boolean assignationEffectuee = true;
+            
+            while (assignationEffectuee && !nonAssgineesEnCours.isEmpty()) {
+                assignationEffectuee = false;
+                
+                // Pour chaque véhicule avec places libres
+                for (TrajetVehiculeDTO trajet : etatsVehicules) {
+                    int placesLibres = trajet.getPlacesDisponibles();
+                    
+                    if (placesLibres <= 0) {
+                        continue; // Pas de place
                     }
-
-                    TrajetVehiculeDTO vehiculeChoisi = selectBestVehicleByLoadAndFuel(
-                            candidats,
-                            passagersDemandes,
-                            vehiculeTrajetCounts);
-
-                    if (vehiculeChoisi == null) {
-                        break;
+                    
+                    // Chercher la meilleure NON-ASSIGNÉE pour ces places libres
+                    int bestIndex = findBestReservationForAvailableSpace(nonAssgineesEnCours, placesLibres);
+                    
+                    if (bestIndex < 0) {
+                        continue; // Aucune non-assignée compatible
                     }
-
-                    LocalDateTime retourVehicule = vehiculeReturnTimes.get(vehiculeChoisi.getVehiculeId());
+                    
+                    Reservation meilleure = nonAssgineesEnCours.get(bestIndex);
+                    int nbAAffecter = Math.min(meilleure.getNbPassager(), placesLibres);
+                    
+                    System.out.println("  [PHASE 1] ✓ NON-ASSIGNÉE [PRIORITÉ]: R#" + meilleure.getIdReservation() + 
+                            "(" + meilleure.getNbPassager() + "pax) → V" + trajet.getVehiculeId() + 
+                            " (" + placesLibres + " places), assigne " + nbAAffecter + " pax");
+                    
+                    // Vérifier fenêtre retour
+                    LocalDateTime retourVehicule = vehiculeReturnTimes.get(trajet.getVehiculeId());
                     if (retourVehicule != null
                             && fenetreDebut != null
                             && fenetreFin != null
@@ -1066,50 +1133,140 @@ public class AssignationService {
                             && !retourVehicule.isAfter(fenetreFin)) {
                         departDepuisRetourVehicule = true;
                     }
-
-                    int placesDisponibles = vehiculeChoisi.getPlacesDisponibles();
-                    if (placesDisponibles <= 0) {
-                        break;
-                    }
-
-                    int aAffecter = Math.min(passagersRestants, placesDisponibles);
-
-                    int dernierLieu = vehiculeChoisi.getListeReservations().isEmpty()
+                    
+                    int dernierLieu = trajet.getListeReservations().isEmpty()
                             ? AEROPORT_ID
-                            : vehiculeChoisi.getListeReservations()
-                                    .get(vehiculeChoisi.getListeReservations().size() - 1)
+                            : trajet.getListeReservations()
+                                    .get(trajet.getListeReservations().size() - 1)
                                     .getIdHotel();
-
-                    double distance = distanceService.getDistance(dernierLieu, reservation.getHotel().getIdHotel());
-                    int ordreVisite = vehiculeChoisi.getListeReservations().size() + 1;
-                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(reservation, ordreVisite, distance, aAffecter);
-                    vehiculeChoisi.addReservation(affectee);
-                    affectationEffectuee = true;
-
+                    
+                    double distance = distanceService.getDistance(dernierLieu, meilleure.getHotel().getIdHotel());
+                    int ordreVisite = trajet.getListeReservations().size() + 1;
+                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(meilleure, ordreVisite, distance, nbAAffecter);
+                    trajet.addReservation(affectee);
+                    
                     if (fenetreDebut != null
                             && fenetreFin != null
-                            && !reservation.getDateHeureArrive().isBefore(fenetreDebut)
-                            && !reservation.getDateHeureArrive().isAfter(fenetreFin)
+                            && !meilleure.getDateHeureArrive().isBefore(fenetreDebut)
+                            && !meilleure.getDateHeureArrive().isAfter(fenetreFin)
                             && (derniereReservationAssigneeDansFenetre == null
-                            || reservation.getDateHeureArrive().isAfter(derniereReservationAssigneeDansFenetre))) {
-                        derniereReservationAssigneeDansFenetre = reservation.getDateHeureArrive();
+                            || meilleure.getDateHeureArrive().isAfter(derniereReservationAssigneeDansFenetre))) {
+                        derniereReservationAssigneeDansFenetre = meilleure.getDateHeureArrive();
                     }
-
-                    totalPassagers += aAffecter;
-                    passagersRestants -= aAffecter;
+                    
+                    totalPassagers += nbAAffecter;
+                    
+                    // Mettre à jour réservation ou supprimer
+                    if (nbAAffecter >= meilleure.getNbPassager()) {
+                        // Complètement assignée
+                        nonAssgineesEnCours.remove(bestIndex);
+                        System.out.println("        → R#" + meilleure.getIdReservation() + " COMPLÈTEMENT assignée ✓");
+                    } else {
+                        // Partiellement assignée - créer reste
+                        int reste = meilleure.getNbPassager() - nbAAffecter;
+                        Reservation restante = assignPartially(meilleure, trajet, nbAAffecter);
+                        nonAssgineesEnCours.set(bestIndex, restante);
+                        System.out.println("        → R#" + meilleure.getIdReservation() + " partiellement assignée, " + 
+                                reste + " pax restants");
+                    }
+                    
+                    assignationEffectuee = true;
+                    break; // Recommencer la boucle véhicules
                 }
-
-                if (!affectationEffectuee || passagersRestants > 0) {
-                    Reservation partielle = new Reservation();
-                    partielle.setIdReservation(reservation.getIdReservation());
-                    partielle.setDateHeureArrive(reservation.getDateHeureArrive());
-                    partielle.setIdClient(reservation.getIdClient());
-                    partielle.setNbPassager(passagersRestants > 0 ? passagersRestants : reservation.getNbPassager());
-                    partielle.setHotel(reservation.getHotel());
-                    partielle.setClient(reservation.getClient());
-                    partielle.setClientId(reservation.getClientId());
-                    nonAffecteesPourLeProchain.add(partielle);
+            }
+            
+            // Non-assignées restantes peu après Phase 1
+            for (Reservation res : nonAssgineesEnCours) {
+                System.out.println("  [PHASE 1] ✗ NON-ASSIGNÉE RESTANTE: R#" + res.getIdReservation() + 
+                        "(" + res.getNbPassager() + "pax) → sera reportée au prochain groupement");
+                nonAffecteesPourLeProchain.add(res);
+            }
+            
+            // ═══════════════════════════════════════════════════════════════════════════
+            // PHASE 2: ASSIGNER LES NOUVELLES RÉSERVATIONS AVEC BEST-FIT
+            // ═══════════════════════════════════════════════════════════════════════════
+            List<Reservation> nouvellesEnCours = new ArrayList<>(nouvellesTriees);
+            assignationEffectuee = true;
+            
+            while (assignationEffectuee && !nouvellesEnCours.isEmpty()) {
+                assignationEffectuee = false;
+                
+                for (TrajetVehiculeDTO trajet : etatsVehicules) {
+                    int placesLibres = trajet.getPlacesDisponibles();
+                    
+                    if (placesLibres <= 0) {
+                        continue; // Pas de place
+                    }
+                    
+                    int bestIndex = findBestReservationForAvailableSpace(nouvellesEnCours, placesLibres);
+                    
+                    if (bestIndex < 0) {
+                        continue; // Aucune nouvelle compatible
+                    }
+                    
+                    Reservation meilleure = nouvellesEnCours.get(bestIndex);
+                    int nbAAffecter = Math.min(meilleure.getNbPassager(), placesLibres);
+                    
+                    System.out.println("  [PHASE 2] ✓ NOUVELLE [BEST-FIT]: R#" + meilleure.getIdReservation() + 
+                            "(" + meilleure.getNbPassager() + "pax) → V" + trajet.getVehiculeId() + 
+                            " (" + placesLibres + " places), assigne " + nbAAffecter + " pax");
+                    
+                    // Vérifier fenêtre retour
+                    LocalDateTime retourVehicule = vehiculeReturnTimes.get(trajet.getVehiculeId());
+                    if (retourVehicule != null
+                            && fenetreDebut != null
+                            && fenetreFin != null
+                            && !retourVehicule.isBefore(fenetreDebut)
+                            && !retourVehicule.isAfter(fenetreFin)) {
+                        departDepuisRetourVehicule = true;
+                    }
+                    
+                    int dernierLieu = trajet.getListeReservations().isEmpty()
+                            ? AEROPORT_ID
+                            : trajet.getListeReservations()
+                                    .get(trajet.getListeReservations().size() - 1)
+                                    .getIdHotel();
+                    
+                    double distance = distanceService.getDistance(dernierLieu, meilleure.getHotel().getIdHotel());
+                    int ordreVisite = trajet.getListeReservations().size() + 1;
+                    ReservationAffecteeDTO affectee = toReservationAffecteeDTO(meilleure, ordreVisite, distance, nbAAffecter);
+                    trajet.addReservation(affectee);
+                    
+                    if (fenetreDebut != null
+                            && fenetreFin != null
+                            && !meilleure.getDateHeureArrive().isBefore(fenetreDebut)
+                            && !meilleure.getDateHeureArrive().isAfter(fenetreFin)
+                            && (derniereReservationAssigneeDansFenetre == null
+                            || meilleure.getDateHeureArrive().isAfter(derniereReservationAssigneeDansFenetre))) {
+                        derniereReservationAssigneeDansFenetre = meilleure.getDateHeureArrive();
+                    }
+                    
+                    totalPassagers += nbAAffecter;
+                    
+                    // Mettre à jour réservation ou supprimer
+                    if (nbAAffecter >= meilleure.getNbPassager()) {
+                        // Complètement assignée
+                        nouvellesEnCours.remove(bestIndex);
+                        System.out.println("        → R#" + meilleure.getIdReservation() + " COMPLÈTEMENT assignée ✓");
+                    } else {
+                        // Partiellement assignée - créer reste
+                        int reste = meilleure.getNbPassager() - nbAAffecter;
+                        Reservation restante = assignPartially(meilleure, trajet, nbAAffecter);
+                        nouvellesEnCours.set(bestIndex, restante);
+                        System.out.println("        → R#" + meilleure.getIdReservation() + " partiellement assignée, " + 
+                                reste + " pax restants");
+                    }
+                    
+                    assignationEffectuee = true;
+                    break; // Recommencer la boucle véhicules
                 }
+            }
+            
+            // Nouvelles non assignées
+            for (Reservation res : nouvellesEnCours) {
+                System.out.println("  [PHASE 2] ✗ NOUVELLE NON-ASSIGNÉE: R#" + res.getIdReservation() + 
+                        "(" + res.getNbPassager() + "pax) → sera reportée au prochain groupement");
+                nonAffecteesPourLeProchain.add(res);
             }
 
             // Regle metier: depart base = derniere reservation assignee de la fenetre.
