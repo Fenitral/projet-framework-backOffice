@@ -768,6 +768,169 @@ public class AssignationService {
     }
 
     /**
+     * SPRINT 8 - LOGIQUE FENETRE CORRECTE:
+     * Traiter les réservations NON-ASSIGNÉES et PARTIELLEMENT-ASSIGNÉES lors du retour d'un véhicule.
+     * 
+     * RÈGLES IMPORTANTES:
+     * - Une réservation NON_AFFECTEE reste en attente INDÉFINIMENT jusqu'à assignation
+     * - Elle peut être d'hier, d'avant-hier, etc. → PRIORITÉ ABSOLUE sur les nouvelles!
+     * - Pas de filtrage par date: une résa du 20/03 non-assignée est prioritaire le 22/03
+     * 
+     * ÉTAPES:
+     * 1. Si véhicule a 0 places libres → pas traitement
+     * 
+     * 2. Si véhicule a 1+ places libres:
+     *    ÉTAPE 1: Chercher TOUTES les NON-ASSIGNÉES (TOUTES DATES)
+     *             Ces réservations qui attendent depuis longtemps - PRIORITÉ ABSOLUE
+     *             Les assigner jusqu'à épuisement ou places libres = 0
+     *    
+     *    ÉTAPE 2: Si encore places libres:
+     *             Créer fenêtre [heureRetour → heureRetour + dureeFenetreMinutes]
+     *             Chercher réservations NON/PARTIELLEMENT-ASSIGNÉES DANS cette fenêtre
+     *             Les assigner par best-fit
+     * 
+     * 3. JAMAIS PARTIR VIDE: Si places libres + réservations → assignation obligatoire
+     * 
+     * @param vehicule Le véhicule qui retourne
+     * @param heureRetour Heure de retour du véhicule
+     * @return true si assignation/traitement effectué
+     */
+    public boolean processWindowAssignment(Vehicule vehicule, LocalDateTime heureRetour) throws SQLException {
+        if (vehicule == null || heureRetour == null) {
+            return false;
+        }
+
+        LocalDate dateRetour = heureRetour.toLocalDate();
+        System.out.println("\n[WINDOW] === Traitement Fenêtre pour V" + vehicule.getIdVehicule() + " le " + dateRetour + " ===");
+        System.out.println("[WINDOW] Heure retour: " + heureRetour);
+
+        int placesLibres = vehicule.getPlacesDisponibles();
+        System.out.println("[WINDOW] Places libres: " + placesLibres);
+
+        // CAS 1: Zéro place libre → pas traitement
+        if (placesLibres <= 0) {
+            System.out.println("[WINDOW] ✗ 0 places libres → Véhicule part immédiatement");
+            return false;
+        }
+
+        // CAS 2: 1+ places libres → 2 ÉTAPES
+        int totalAssignes = 0;
+        boolean assignationEffectuee = false;
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ÉTAPE 1: ASSIGNER TOUTES les NON-ASSIGNÉES (TOUTES DATES!)
+        // = Réservations anciennes Q restent en attente qu'on leur trouve un véhicule
+        // AUCUN FILTRAGE PAR DATE - priorité absolue
+        // ═══════════════════════════════════════════════════════════════════════════
+        System.out.println("[WINDOW] 📋 ÉTAPE 1: Chercher TOUTES les NON-ASSIGNÉES (TOUTES DATES)");
+
+        List<Reservation> toutesNonAssignees = reservationRepository.findNonAssignedReservations();
+        System.out.println("[WINDOW] Trouvées: " + toutesNonAssignees.size() + " NON-ASSIGNÉES en attente");
+
+        for (Reservation res : toutesNonAssignees) {
+            int placesActuellementLibres = vehicule.getPlacesDisponibles();
+            if (placesActuellementLibres <= 0) {
+                System.out.println("[WINDOW] ⚠️ Plus de places libres après " + totalAssignes + " assignations");
+                break; // Plus de places
+            }
+
+            int nbPaxAAffecter = Math.min(res.getNbPassager(), placesActuellementLibres);
+            vehicule.setPlacesDisponibles(placesActuellementLibres - nbPaxAAffecter);
+
+            System.out.println("[WINDOW] ✓ NON-ASSIGNÉE [PRIORITÉ] R#" + res.getIdReservation() + 
+                    " (" + nbPaxAAffecter + "/" + res.getNbPassager() + " pax @ " + res.getDateHeureArrive() + 
+                    ") → V" + vehicule.getIdVehicule());
+
+            // Mettre à jour statut réservation
+            if (nbPaxAAffecter >= res.getNbPassager()) {
+                reservationRepository.updateReservationStatus(res.getIdReservation(), "COMPLETEMENT_AFFECTEE", nbPaxAAffecter);
+                System.out.println("        ✓ Statut: COMPLETEMENT_AFFECTEE");
+            } else {
+                reservationRepository.updateReservationStatus(res.getIdReservation(), "PARTIELLEMENT_AFFECTEE", nbPaxAAffecter);
+                System.out.println("        ✓ Statut: PARTIELLEMENT_AFFECTEE (" + nbPaxAAffecter + " assignés)");
+            }
+
+            totalAssignes += nbPaxAAffecter;
+            assignationEffectuee = true;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ÉTAPE 2: Si places restantes → chercher dans FENÊTRE temps [retour, retour+durée]
+        // = Nouvelles réservations qui arrivent dans la fenêtre
+        // ═══════════════════════════════════════════════════════════════════════════
+        int placesRestantes = vehicule.getPlacesDisponibles();
+        if (placesRestantes > 0) {
+            System.out.println("[WINDOW] 🕐 ÉTAPE 2: Places restantes = " + placesRestantes + 
+                    " → Chercher dans fenêtre temps");
+
+            int dureeFenetreMinutes = parametreService.getDureeFenetreMinutes();
+            LocalDateTime fenetreDebut = heureRetour;
+            LocalDateTime fenetreFin = heureRetour.plusMinutes(dureeFenetreMinutes);
+
+            System.out.println("[WINDOW]    Fenêtre: [" + fenetreDebut + " → " + fenetreFin + "]");
+
+            List<Reservation> dansLaFenetre = reservationRepository.findUnassignedInTimeWindow(
+                    dateRetour, fenetreDebut, fenetreFin);
+            System.out.println("[WINDOW]    Réservations NON/PARTIELLEMENT-AFFECTÉES dans fenêtre: " + dansLaFenetre.size());
+
+            for (Reservation res : dansLaFenetre) {
+                int placesActuellementLibres = vehicule.getPlacesDisponibles();
+                if (placesActuellementLibres <= 0) {
+                    break;
+                }
+
+                // Pour partiellement assignées: calculer passagers restants
+                int passagersAAffecter;
+                if ("PARTIELLEMENT_AFFECTEE".equals(res.getStatutReservation())) {
+                    int restants = res.getNbPassager() - res.getNbrPassagersAssignes();
+                    passagersAAffecter = Math.min(restants, placesActuellementLibres);
+                } else {
+                    passagersAAffecter = Math.min(res.getNbPassager(), placesActuellementLibres);
+                }
+
+                vehicule.setPlacesDisponibles(placesActuellementLibres - passagersAAffecter);
+
+                System.out.println("[WINDOW] ✓ FENÊTRE R#" + res.getIdReservation() + 
+                        " (" + passagersAAffecter + " pax @ " + res.getDateHeureArrive() + ") → V" + vehicule.getIdVehicule());
+
+                int totalNowAssignes;
+                if ("PARTIELLEMENT_AFFECTEE".equals(res.getStatutReservation())) {
+                    totalNowAssignes = res.getNbrPassagersAssignes() + passagersAAffecter;
+                } else {
+                    totalNowAssignes = passagersAAffecter;
+                }
+
+                if (totalNowAssignes >= res.getNbPassager()) {
+                    reservationRepository.updateReservationStatus(res.getIdReservation(), "COMPLETEMENT_AFFECTEE", totalNowAssignes);
+                    System.out.println("        ✓ Statut: COMPLETEMENT_AFFECTEE");
+                } else {
+                    reservationRepository.updateReservationStatus(res.getIdReservation(), "PARTIELLEMENT_AFFECTEE", totalNowAssignes);
+                    System.out.println("        ✓ Statut: PARTIELLEMENT_AFFECTEE (" + totalNowAssignes + " assignés)");
+                }
+
+                totalAssignes += passagersAAffecter;
+                assignationEffectuee = true;
+            }
+
+            // Si toujours des places après étape 2
+            if (vehicule.getPlacesDisponibles() > 0) {
+                System.out.println("[WINDOW] ℹ️ Quelques places restent libres (" + vehicule.getPlacesDisponibles() + 
+                        ") mais aucune réservation en attente → Véhicule part");
+            }
+        }
+
+        // RÉSUMÉ FINAL
+        if (assignationEffectuee) {
+            System.out.println("[WINDOW] ✅ RÉSUMÉ: Total assigné = " + totalAssignes + " pax");
+            System.out.println("[WINDOW] ✅ Places restantes = " + vehicule.getPlacesDisponibles());
+        } else {
+            System.out.println("[WINDOW] ⚠️ Aucune assignation effectuée → Véhicule part (aucune résa en attente)");
+        }
+
+        return assignationEffectuee;
+    }
+
+    /**
      * Effectue la planification complète pour une date donnée.
      * Exclut les réservations déjà planifiées (qui ont une assignation).
      */

@@ -5,6 +5,7 @@ import com.cousin.model.Reservation;
 import com.cousin.repository.HotelRepository;
 import com.cousin.repository.ReservationRepository;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 
 public class ReservationService {
@@ -31,5 +32,9 @@ public class ReservationService {
 
     public List<Reservation> listReservations() throws SQLException {
         return reservationRepository.findAllWithHotel();
+    }
+
+    public List<Reservation> listReservationsByDateRange(LocalDate dateDebut, LocalDate dateFin) throws SQLException {
+        return reservationRepository.findByDateRange(dateDebut, dateFin);
     }
 }
