@@ -134,4 +134,54 @@ public class ReservationRepository {
         }
         return reservations;
     }
+
+    public List<Reservation> findByDateRange(LocalDate dateDebut, LocalDate dateFin) throws SQLException {
+        String sql = "SELECT r.Id_reservation, r.DateHeureArrive, r.idClient, r.nbPassager, r.client_id, " +
+                     "h.Id_Hotel, h.nom, " +
+                     "c.client_id AS c_client_id, c.name AS c_name, c.email AS c_email, c.phone AS c_phone " +
+                     "FROM local.reservation r " +
+                     "JOIN local.Hotel h ON r.Id_Hotel = h.Id_Hotel " +
+                     "LEFT JOIN local.client c ON r.client_id = c.client_id " +
+                     "WHERE DATE(r.DateHeureArrive) >= ? AND DATE(r.DateHeureArrive) <= ? " +
+                     "ORDER BY r.DateHeureArrive DESC";
+        List<Reservation> reservations = new ArrayList<>();
+
+        try (Connection connection = DbConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setDate(1, java.sql.Date.valueOf(dateDebut));
+            statement.setDate(2, java.sql.Date.valueOf(dateFin));
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    Hotel hotel = new Hotel();
+                    hotel.setIdHotel(resultSet.getInt("Id_Hotel"));
+                    hotel.setNom(resultSet.getString("nom"));
+
+                    Reservation reservation = new Reservation();
+                    reservation.setIdReservation(resultSet.getInt("Id_reservation"));
+                    Timestamp ts = resultSet.getTimestamp("DateHeureArrive");
+                    if (ts != null) {
+                        reservation.setDateHeureArrive(ts.toLocalDateTime());
+                    }
+                    reservation.setIdClient(resultSet.getString("idClient"));
+                    reservation.setNbPassager(resultSet.getInt("nbPassager"));
+                    reservation.setHotel(hotel);
+                    
+                    int clientId = resultSet.getInt("client_id");
+                    if (!resultSet.wasNull()) {
+                        reservation.setClientId(clientId);
+                        Client client = new Client();
+                        client.setClientId(resultSet.getInt("c_client_id"));
+                        client.setName(resultSet.getString("c_name"));
+                        client.setEmail(resultSet.getString("c_email"));
+                        client.setPhone(resultSet.getString("c_phone"));
+                        reservation.setClient(client);
+                    }
+                    
+                    reservations.add(reservation);
+                }
+            }
+        }
+        return reservations;
+    }
 }
