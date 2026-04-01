@@ -11,6 +11,7 @@ import com.framework.annotation.PostMapping;
 import com.framework.model.ModelView;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Controller
@@ -57,9 +58,23 @@ public class ReservationController {
     }
 
     @GetMapping("/reservation/list")
-    public ModelView showReservationListPage() throws SQLException {
+    public ModelView showReservationListPage(
+            @Param("dateDebut") String dateDebut,
+            @Param("dateFin") String dateFin) throws SQLException {
         ModelView mv = new ModelView("/WEB-INF/views/reservation/list.jsp");
-        mv.addAttribute("reservations", reservationService.listReservations());
+        
+        List<Reservation> reservations;
+        if (dateDebut != null && !dateDebut.isBlank() && dateFin != null && !dateFin.isBlank()) {
+            LocalDate start = LocalDate.parse(dateDebut);
+            LocalDate end = LocalDate.parse(dateFin);
+            reservations = reservationService.listReservationsByDateRange(start, end);
+        } else {
+            reservations = reservationService.listReservations();
+        }
+        
+        mv.addAttribute("reservations", reservations);
+        mv.addAttribute("dateDebut", dateDebut);
+        mv.addAttribute("dateFin", dateFin);
         return mv;
     }
 

@@ -15,6 +15,21 @@
     <div class="main-content">
         <h2>Liste des reservations</h2>
 
+        <div style="margin-bottom: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+            <h3>Filtre par date</h3>
+            <form method="get" action="<%= request.getContextPath() %>/reservation/list" style="display: flex; gap: 15px; align-items: flex-end;">
+                <div>
+                    <label for="dateDebut">Date début :</label><br>
+                    <input type="date" id="dateDebut" name="dateDebut" value="<%= request.getAttribute("dateDebut") != null ? request.getAttribute("dateDebut") : "" %>" required>
+                </div>
+                <div>
+                    <label for="dateFin">Date fin :</label><br>
+                    <input type="date" id="dateFin" name="dateFin" value="<%= request.getAttribute("dateFin") != null ? request.getAttribute("dateFin") : "" %>" required>
+                </div>
+                <button type="submit" style="padding: 8px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Appliquer</button>
+            </form>
+        </div>
+
         <table class="table" border="1" cellpadding="6" cellspacing="0">
             <thead>
                 <tr>
@@ -23,7 +38,7 @@
                     <th>Id client</th>
                     <th>Nb passagers</th>
                     <th>Hotel</th>
-                </tr>
+                </tr>6
             </thead>
             <tbody>
             <%

@@ -1,0 +1,255 @@
+BACK-OFFICE : 
+BACKEND: Ange
+FRONTEND: Tina
+🎯 SPRINT 8 - Liste des tâches
+PHASE 1 : ASSIGNATION DES NON-ASSIGNÉES EN PRIORITÉ
+
+✅ Trier les réservations non-assignées par priorité (ancien d'abord + nombreux en priorité)
+✅ Assigner les non-assignées EN PREMIER (capacité véhicule <= nb-passager)
+✅ Traiter le reste partiel de non-assignées si assignation partielle
+✅ Traiter les réservations normales (nouvelles) APRÈS
+PHASE 2 : FENÊTRE DE RETOUR (30 min)
+5. ✅ Après retour du véhicule : chercher réservations dans [heure_retour, heure_retour + 30min]
+6. ✅ Assigner réservations de fenêtre retour (capacité voiture > nb-passager)
+7. ✅ Ajuster heure départ véhicule = heure dernière assignation fenêtre retour
+8. ✅ Recalculer distances et heures retour après assignations fenêtre
+
+PHASE 3 : LOGIQUE DE TRI ET PRIORISATION
+9. ✅ Mettre en place système de tri : ancien + nombreux en priorité
+10. ✅ Tester avec scénario : R1(18)=V1(8)+V2(5) → [5 non-assignées] → V3(10)@12h
+
+Rapport de priorité (comme tu l'as expliqué) :
+
+1ère priorité = Réservations NON-ASSIGNÉES (par ancienneté, puis nb passagers DESC)
+2e priorité = Réservations normales de la fenêtre groupement
+3e priorité = Fenêtre de retour (après que le véhicule revienne)
+
+Tâche #3 : "Autoriser séparation passagers si pas de véhicule pour tous ensemble"
+
+Cette tâche est positionnée après l'assignation des non-assignées, ce qui signifie :
+ si une réservation (non-assignée ou normale) n'a pas de véhicule disponible avec assez de places 
+ pour tous les passagers, on cherche des véhicules pour les accepter partiellement (séparation en groupes).
+
+ AJOUT / MODIFICATION COTEE METIER : 
+
+ NOUVELLES FONCTIONS À CRÉER :
+1. sortReservationsWithUnassignedPriority(List<Reservation> all, List<Reservation> unassigned)
+
+Classe : AssignationService.java
+Entrée : Toutes les réservations + liste des non-assignées
+Sortie : Liste triée = [NON-ASSIGNÉES (anciens puis nombreux) + NORMALES]
+Logique :
+NON-ASSIGNÉES d'abord, triées par (date d'arrivée ASC, puis nbPassagers DESC)
+Puis NORMALES du jour, triées par nbPassagers DESC
+2. findReservationsInReturnWindow(List<Reservation> waiting, LocalDateTime vehicleReturn, int windowMinutes)
+
+Classe : AssignationService.java
+Entrée : Réservations en attente + heure retour véhicule + 30min
+Sortie : Réservations dont l'heure d'arrivée ∈ [retour, retour+30min]
+Logique : Filtre + tri par heure d'arrivée
+3. canSplitPassengers(Reservation res, List<TrajetVehiculeDTO> availableVehicles)
+
+Classe : AssignationService.java
+Entrée : Une réservation + véhicules disponibles
+Sortie : true si on peut séparer les passagers, false sinon
+Logique : Vérifier si la somme des places dispo > nb passagers
+4. assignPartially(Reservation res, TrajetVehiculeDTO vehicle, int nbToAssign)
+
+Classe : AssignationService.java
+Entrée : Réservation + véhicule + nombre passagers à assigner
+Sortie : Réservation partiellement assignée + reste non-assigné
+Logique : Créer une nouvelle Reservation avec le reste des passagers
+🟡 MÉTHODES À MODIFIER :
+1. planifierParGroupements(LocalDate date) - MODIFICATIONS MAJEURES
+
+Classe : AssignationService.java (ligne ~781)
+Changements :
+Avant la boucle de groupement : Ajouter logique pour trier NON-ASSIGNÉES avec priorité
+Dans la boucle de groupement (avant assignation) :
+Appeler sortReservationsWithUnassignedPriority() avec les non-assignées + nouvelles
+Assigner les NON-ASSIGNÉES EN PREMIER
+SI pas assez places → autoriser SÉPARATION avec canSplitPassengers()
+Après assignation initiale (nouveau bloc) :
+Pour chaque véhicule avec heure retour
+Appeler findReservationsInReturnWindow()
+Assigner les réservations de fenêtre de retour
+Ajuster heureDepart = heure dernière assignation fenêtre
+Recalculer distances/heures de passage
+Variables à ajouter :
+List<Reservation> reservationsNonAssigneesGlobales (tracking global)
+Map<Integer, LocalDateTime> minHeureArriveeParVehicule (pour heure départ finale)
+2. sortReservationsByNbPassagerDesc(List<Reservation> reservations) - MODIFICATION LÉGÈRE
+
+Classe : AssignationService.java (ligne ~131)
+Changement : Ajouter paramètre optionnel pour tri par ancienneté d'abord
+OU créer une SURCHARGE : sortReservationsByNbPassagerDesc(List<Reservation>, boolean byOldestFirst)
+3. selectBestVehicleByPriority(...) - MODIFICATION
+
+Classe : AssignationService.java (ligne ~228)
+Logique existante : À VÉRIFIER que elle support bien :
+Tier 1 : Chercher véhicule avec places >= réservation complète
+Tier 2 (fallback) : Si aucun → prendre celui avec PLUS de places (favorise séparation)
+SI non → ajouter cette logique
+🟢 MODIFICATIONS DE STRUCTURE DANS planifierParGroupements() :
+🔹 Nouvelle section à insérer (après assignation initiale, ~ligne 920-1000) :
+
+🔹 Réorganisation du tri à la ligne ~834 :
+
+🔹 Logique de séparation passagers (après vérification candidats >0, ~ligne 850+) :
+
+📌 RÉSUMÉ PAR CLASSE :
+Classe	Modifications	Type
+AssignationService.java	+ 4 nouvelles méthodes + modifications planifierParGroupements()	MAJEUR
+Reservation.java	Ajouter flag isPartiallyAssigned (optionnel)	MINEUR
+TrajetVehiculeDTO.java	Aucune modification (utilise déjà)	-
+ReservationAffecteeDTO.java	Aucune modification (utilise déjà)	-
+🎯 ORDRE D'IMPLÉMENTATION CONSEILLÉ :
+Créer sortReservationsWithUnassignedPriority() (indépendant)
+Créer findReservationsInReturnWindow() (indépendant)
+Créer canSplitPassengers() + assignPartially() (pair)
+Modifier planifierParGroupements() étapes par étapes:
+D'abord phase NON-ASSIGNÉES (tâches 1-3)
+Puis phase SÉPARATION (tâche 3)
+Enfin phase FENÊTRE RETOUR (tâches 5-8)
+Tester avec le scénario R1(18)→V1(8)+V2(5)→V3(10)
+
+_________DISTRIBUTION DE TACHES__________________________________
+═══════════════════════════════════════════════════════════════════════════
+🔧 BACKEND - ANGE
+═══════════════════════════════════════════════════════════════════════════
+
+PHASE 1 : NOUVELLES FONCTIONS À CRÉER
+═════════════════════════════════════════
+
+1️⃣ AssignationService.java
+   public List<Reservation> sortReservationsWithUnassignedPriority(
+       List<Reservation> allReservations, 
+       List<Reservation> unassignedReservations)
+
+2️⃣ AssignationService.java
+   public List<Reservation> findReservationsInReturnWindow(
+       List<Reservation> waitingReservations,
+       LocalDateTime vehicleReturn,
+       int windowMinutes)
+
+3️⃣ AssignationService.java
+   public boolean canSplitPassengers(
+       Reservation reservation,
+       List<TrajetVehiculeDTO> availableVehicles)
+
+4️⃣ AssignationService.java
+   public Reservation assignPartially(
+       Reservation reservation,
+       TrajetVehiculeDTO vehicle,
+       int nbToAssign)
+
+PHASE 2 : SURCHARGES À AJOUTER
+════════════════════════════════
+
+5️⃣ AssignationService.java (ligne ~131)
+   public List<Reservation> sortReservationsByNbPassagerDesc(
+       List<Reservation> reservations,
+       boolean byOldestFirst)
+
+PHASE 3 : MODIFICATIONS DANS planifierParGroupements()
+═════════════════════════════════════════════════════════
+
+6️⃣ AssignationService.java (ligne ~834)
+   Remplacer appel sortReservationsByNbPassagerDesc()
+   Par sortReservationsWithUnassignedPriority()
+
+7️⃣ AssignationService.java (ligne ~834)
+   Ajouter variables:
+   List<Reservation> reservationsNonAssigneesGlobales
+   Map<Integer, LocalDateTime> minHeureArriveeParVehicule
+
+8️⃣ AssignationService.java (ligne ~855)
+   Ajouter condition canSplitPassengers() et assignPartially()
+
+9️⃣ AssignationService.java (après ligne ~1000)
+   Ajouter boucle fenêtre retour:
+   - findReservationsInReturnWindow()
+   - assignPartially()
+   - Recalcul distances/heures
+
+PHASE 4 : OPTIONNEL - Modèle Reservation
+═════════════════════════════════════════════
+
+🔟 Reservation.java
+   private boolean partiallyAssigned = false;
+   + getter/setter
+
+═══════════════════════════════════════════════════════════════════════════
+🎨 FRONTEND - TINA
+═══════════════════════════════════════════════════════════════════════════
+
+PHASE 1 : AFFICHAGE NON-ASSIGNÉES
+═══════════════════════════════════
+
+1️⃣ affichageResultats.jsp
+   Ajouter section "Réservations En Attente"
+
+2️⃣ style.css
+   Ajouter classe .reservation-attente
+
+PHASE 2 : AFFICHAGE ASSIGNATION PARTIELLE
+═════════════════════════════════════════════
+
+3️⃣ affichageResultats.jsp
+   Modifier colonne passagers (ex: "8/8" ou "5/8")
+
+4️⃣ style.css
+   Ajouter classe .partial-badge
+
+PHASE 3 : AFFICHAGE FENÊTRE RETOUR
+═════════════════════════════════════
+
+5️⃣ affichageResultats.jsp
+   Ajouter colonne "Source Assignation"
+
+6️⃣ planification.jsp
+   Ajouter info "Assignations fenêtre retour"
+
+PHASE 4 : TABLEAU VÉHICULES AMÉLIORÉ
+═══════════════════════════════════════
+
+7️⃣ affichageResultats.jsp
+   Modifier affichage places: "8/15"
+   Ajouter badge fenêtre retour
+
+PHASE 5 : STYLE & UX
+═════════════════════
+
+8️⃣ style.css
+   Ajouter classes:
+   - .reservation-waiting
+   - .reservation-partial
+   - .reservation-window
+   - .priority-indicator
+
+9️⃣ sidebar.js (OPTIONNEL)
+   Ajouter filtres dynamiques
+
+PHASE 6 : MESSAGES INFORMATIFS
+═════════════════════════════════
+
+🔟 affichageResultats.jsp
+   Ajouter messages de synthèse
+
+═══════════════════════════════════════════════════════════════════════════
+📊 RÉSUMÉ TÂCHES PAR ÉQUIPE
+
+BACKEND (ANGE): 10 tâches
+- 4 nouvelles fonctions
+- 1 surcharge
+- 5 modifications planifierParGroupements()
+
+FRONTEND (TINA): 10 tâches
+- 2 JSP affichage non-assignées
+- 2 JSP/CSS assignation partielle
+- 2 JSP fenêtre retour
+- 2 JSP/CSS "véhicules amélioré"
+- 1 CSS style & UX
+- 1 JSP messages
+
+═══════════════════════════════════════════════════════════════════════════
